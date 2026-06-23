@@ -1,25 +1,97 @@
 {
   "expo": {
-    "name": "security_alert",
-    "slug": "security_alert",
-    "version": "1.0.0",
+    "name": "Security Alert",
+    "slug": "security-alert",
+    "version": "1.2.1",
+    "scheme": "securityalert",
+    "platforms": [
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#9FA3AF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "securityalert"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rairex.securityalert",
+      "versionCode": 5
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "extra": {
+      "eas": {
+        "projectId": "2155f16a-fa07-48ad-b1d7-32392f937438"
+      }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Aplikasi mengakses galeri untuk memilih foto kejadian.",
+          "cameraPermission": "Aplikasi mengakses kamera untuk mengambil foto kejadian.",
+          "microphonePermission": "Aplikasi mengakses mikrofon untuk mengubah suara menjadi teks saat mengirim laporan."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Aplikasi mengakses mikrofon untuk mengubah suara menjadi teks saat mengirim laporan.",
+          "speechRecognitionPermission": "Aplikasi menggunakan pengenalan suara untuk mengubah laporan darurat menjadi teks.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Aplikasi mengakses lokasi saat Anda mengirim laporan darurat."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "staff-alerts-alarm-v2",
+          "sounds": [
+            "./assets/sounds/alarm_sound_effect.mp3"
+          ]
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-asset"
+    ]
   }
 }
