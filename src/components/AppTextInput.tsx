@@ -17,7 +17,7 @@ export const AppTextInput = forwardRef<TextInput, AppTextInputProps>(
         <TextInput
           ref={ref}
           placeholder={hint ?? label}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={ecrTheme.colors.textMuted}
           style={[styles.input, style]}
           {...props}
         />
@@ -30,27 +30,22 @@ AppTextInput.displayName = 'AppTextInput';
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: 8,
+    gap: 7,
   },
   label: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 13.5,
+    fontSize: 12.5,
     fontWeight: '800',
-    letterSpacing: 0.1,
   },
   input: {
     backgroundColor: ecrTheme.colors.card,
     borderColor: ecrTheme.colors.border,
-    borderRadius: 22,
-    borderWidth: 1.2,
+    borderRadius: ecrTheme.radii.md,
+    borderWidth: 1,
     color: ecrTheme.colors.textPrimary,
-    minHeight: 54,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 1,
+    fontSize: 14,
+    minHeight: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
 });

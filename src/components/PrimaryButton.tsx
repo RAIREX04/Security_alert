@@ -38,21 +38,17 @@ export function PrimaryButton({ title, onPress, disabled, style }: PrimaryButton
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 22,
-    minHeight: 56,
+    borderRadius: ecrTheme.radii.md,
+    minHeight: 50,
     overflow: 'hidden',
-    shadowColor: ecrTheme.colors.primaryRed,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 3,
+    ...ecrTheme.shadows.soft,
   },
   gradient: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    minHeight: 56,
-    paddingHorizontal: 18,
+    minHeight: 50,
+    paddingHorizontal: 16,
   },
   pressed: {
     opacity: 0.95,
@@ -63,8 +59,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#FFFFFF',
-    fontSize: 15.5,
+    fontSize: 14.5,
     fontWeight: '900',
-    letterSpacing: 0.2,
   },
 });

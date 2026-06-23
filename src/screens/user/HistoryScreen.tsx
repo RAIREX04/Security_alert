@@ -8,16 +8,18 @@ import { ReportCard } from '../../components/ReportCard';
 import { UserScreenShell } from '../../components/UserScreenShell';
 import { listReportsByUser } from '../../services/report-service';
 import { useAuth } from '../../context/AuthContext';
+import { ecrTheme } from '../../theme/ecrTheme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { UserStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<UserStackParamList, 'UserHistory'>;
 
 const STATUS_FILTERS = ['all', 'open', 'progress', 'close'] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
 
 export function HistoryScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const [selectedStatus, setSelectedStatus] = useState<(typeof STATUS_FILTERS)[number]>('all');
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all');
   const { data, isLoading } = useQuery({
     queryKey: ['reports', 'user-history', user?.userId],
     queryFn: async () => user ? listReportsByUser(user.userId) : [],
@@ -29,43 +31,59 @@ export function HistoryScreen({ navigation }: Props) {
     if (selectedStatus === 'all') return reports;
     return reports.filter((item) => item.status === selectedStatus);
   }, [reports, selectedStatus]);
+  const counts = useMemo(
+    () => ({
+      all: reports.length,
+      open: reports.filter((item) => item.status === 'open').length,
+      progress: reports.filter((item) => item.status === 'progress').length,
+      close: reports.filter((item) => item.status === 'close').length,
+    }),
+    [reports],
+  );
+  const activeCount = counts.open + counts.progress;
 
   return (
     <UserScreenShell
       title="Riwayat Alert Saya"
-      subtitle="Lihat alert yang sudah Anda kirim dan filter berdasarkan status."
+      subtitle="Pantau alert yang sudah dikirim dengan tampilan lebih ringkas."
       left={<HeaderBackButton onPress={() => navigation.navigate('UserHome')} variant="light" />}
+      compact
     >
+      <View style={styles.summaryRow}>
+        <SummaryPill label="Total" value={counts.all} tone="neutral" />
+        <SummaryPill label="Aktif" value={activeCount} tone="info" />
+        <SummaryPill label="Selesai" value={counts.close} tone="success" />
+      </View>
+
       <View style={styles.filterCard}>
-        <Text selectable style={styles.filterTitle}>
-          Filter Status
-        </Text>
+        <View style={styles.filterHeader}>
+          <Text selectable style={styles.filterTitle}>
+            Status
+          </Text>
+          <Text selectable style={styles.filterCaption}>
+            {filteredReports.length} tampil
+          </Text>
+        </View>
         <View style={styles.filterWrap}>
           {STATUS_FILTERS.map((status) => {
             const active = selectedStatus === status;
-            const label =
-              status === 'all'
-                ? 'Semua'
-                : status === 'open'
-                  ? 'Open'
-                  : status === 'progress'
-                    ? 'Progress'
-                    : 'Close';
+            const meta = getFilterMeta(status);
 
             return (
               <Pressable
                 key={status}
                 onPress={() => setSelectedStatus(status)}
                 accessibilityRole="button"
-                accessibilityLabel={`Filter status ${label}`}
+                accessibilityLabel={`Filter status ${meta.label}`}
                 accessibilityState={{ selected: active }}
                 style={({ pressed }) => [
                   styles.filterChip,
-                  active && styles.filterChipActive,
+                  active && { backgroundColor: meta.activeBackground, borderColor: meta.activeBorder },
                   pressed && styles.pressed,
                 ]}
               >
-                <Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text>
+                <Text style={[styles.filterText, active && { color: meta.activeText }]}>{meta.label}</Text>
+                <Text style={[styles.filterCount, active && { color: meta.activeText }]}>{counts[status]}</Text>
               </Pressable>
             );
           })}
@@ -91,6 +109,7 @@ export function HistoryScreen({ navigation }: Props) {
             <ReportCard
               key={report.reportId}
               report={report}
+              compact
               onPress={() => navigation.navigate('ReportDetail', { report })}
             />
           ))}
@@ -100,54 +119,165 @@ export function HistoryScreen({ navigation }: Props) {
   );
 }
 
+function getFilterMeta(status: StatusFilter) {
+  if (status === 'open') {
+    return {
+      label: 'Open',
+      activeBackground: ecrTheme.status.open.bg,
+      activeBorder: ecrTheme.status.open.border,
+      activeText: ecrTheme.status.open.text,
+    };
+  }
+  if (status === 'progress') {
+    return {
+      label: 'Progress',
+      activeBackground: ecrTheme.status.progress.bg,
+      activeBorder: ecrTheme.status.progress.border,
+      activeText: ecrTheme.status.progress.text,
+    };
+  }
+  if (status === 'close') {
+    return {
+      label: 'Close',
+      activeBackground: ecrTheme.status.close.bg,
+      activeBorder: ecrTheme.status.close.border,
+      activeText: ecrTheme.status.close.text,
+    };
+  }
+  return {
+    label: 'Semua',
+    activeBackground: '#EEF4FF',
+    activeBorder: '#B8CDF8',
+    activeText: ecrTheme.colors.pertaminaBlue,
+  };
+}
+
+function SummaryPill({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'info' | 'success' }) {
+  const colors = {
+    neutral: {
+      backgroundColor: '#FFFFFF',
+      borderColor: ecrTheme.colors.border,
+      labelColor: ecrTheme.colors.textSecondary,
+      valueColor: ecrTheme.colors.textPrimary,
+    },
+    info: {
+      backgroundColor: ecrTheme.status.progress.bg,
+      borderColor: ecrTheme.status.progress.border,
+      labelColor: '#1D4ED8',
+      valueColor: ecrTheme.status.progress.text,
+    },
+    success: {
+      backgroundColor: ecrTheme.status.close.bg,
+      borderColor: ecrTheme.status.close.border,
+      labelColor: '#166534',
+      valueColor: ecrTheme.status.close.text,
+    },
+  }[tone];
+
+  return (
+    <View style={[styles.summaryPill, { backgroundColor: colors.backgroundColor, borderColor: colors.borderColor }]}>
+      <Text selectable style={[styles.summaryValue, { color: colors.valueColor }]}>
+        {value}
+      </Text>
+      <Text selectable style={[styles.summaryLabel, { color: colors.labelColor }]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  summaryPill: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flex: 1,
+    gap: 1,
+    minHeight: 58,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  summaryValue: {
+    fontSize: 17,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '900',
+    lineHeight: 21,
+  },
+  summaryLabel: {
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
   filterCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#D9E2EE',
-    borderRadius: 32,
+    borderColor: ecrTheme.colors.border,
+    borderRadius: 20,
     borderWidth: 1,
-    gap: 14,
-    padding: 18,
+    gap: 10,
+    padding: 12,
+    shadowColor: ecrTheme.colors.deepNavy,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 1,
+  },
+  filterHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   filterTitle: {
-    color: '#101828',
-    fontSize: 26,
+    color: ecrTheme.colors.textPrimary,
+    fontSize: 13,
     fontWeight: '900',
-    letterSpacing: -0.6,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  filterCaption: {
+    color: ecrTheme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
   },
   filterWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
   },
   filterChip: {
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderColor: '#D7E3F0',
+    borderColor: ecrTheme.colors.border,
     borderRadius: 999,
     borderWidth: 1,
-    minHeight: 56,
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 36,
     justifyContent: 'center',
-    minWidth: 118,
-    paddingHorizontal: 18,
-  },
-  filterChipActive: {
-    backgroundColor: '#FFF1F3',
-    borderColor: '#F2B8BF',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   filterText: {
-    color: '#475569',
-    fontSize: 16,
+    color: ecrTheme.colors.textSecondary,
+    fontSize: 12.5,
     fontWeight: '800',
   },
-  filterTextActive: {
-    color: '#B91C1C',
+  filterCount: {
+    color: ecrTheme.colors.textMuted,
+    fontSize: 11.5,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '900',
   },
   loading: {
     color: '#667085',
+    fontSize: 13,
   },
   list: {
-    gap: 12,
+    gap: 10,
   },
   pressed: {
     opacity: 0.92,

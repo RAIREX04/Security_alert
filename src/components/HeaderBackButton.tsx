@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pressable, StyleSheet } from 'react-native';
 import { ecrTheme } from '../theme/ecrTheme';
 
 type HeaderBackButtonProps = {
@@ -20,7 +21,11 @@ export function HeaderBackButton({ onPress, variant = 'dark' }: HeaderBackButton
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.text, isLight ? styles.lightText : styles.darkText]}>‹</Text>
+      <MaterialCommunityIcons
+        name="chevron-left"
+        size={25}
+        color={isLight ? ecrTheme.colors.deepNavy : ecrTheme.colors.textPrimary}
+      />
     </Pressable>
   );
 }
@@ -28,37 +33,22 @@ export function HeaderBackButton({ onPress, variant = 'dark' }: HeaderBackButton
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    borderRadius: 18,
-    height: 46,
+    borderRadius: ecrTheme.radii.md,
+    height: 42,
     justifyContent: 'center',
-    width: 46,
+    width: 42,
   },
   darkButton: {
     backgroundColor: ecrTheme.colors.card,
     borderColor: ecrTheme.colors.border,
     borderWidth: 1,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 1,
+    ...ecrTheme.shadows.soft,
   },
   lightButton: {
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderColor: 'rgba(255,255,255,0.24)',
+    backgroundColor: ecrTheme.colors.card,
+    borderColor: ecrTheme.colors.border,
     borderWidth: 1,
-  },
-  text: {
-    fontSize: 28,
-    fontWeight: '900',
-    lineHeight: 28,
-    marginTop: -2,
-  },
-  darkText: {
-    color: ecrTheme.colors.textPrimary,
-  },
-  lightText: {
-    color: '#FFFFFF',
+    ...ecrTheme.shadows.soft,
   },
   pressed: {
     opacity: 0.9,

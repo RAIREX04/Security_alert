@@ -4,14 +4,15 @@ import { ecrTheme } from '../theme/ecrTheme';
 
 type StatusBadgeProps = {
   status: ReportStatus | ApprovalStatus | string;
+  compact?: boolean;
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, compact = false }: StatusBadgeProps) {
   const tone = getTone(status);
   return (
-    <View style={[styles.badge, tone.container]}>
-      <View style={[styles.dot, tone.dot]} />
-      <Text selectable style={[styles.label, tone.label]}>
+    <View style={[styles.badge, compact && styles.badgeCompact, tone.container]}>
+      <View style={[styles.dot, compact && styles.dotCompact, tone.dot]} />
+      <Text selectable style={[styles.label, compact && styles.labelCompact, tone.label]}>
         {tone.labelText}
       </Text>
     </View>
@@ -20,6 +21,14 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 
 function getTone(status: string) {
   const value = status.toLowerCase();
+  if (value === 'open') {
+    return {
+      container: { backgroundColor: ecrTheme.status.open.bg, borderColor: ecrTheme.status.open.border },
+      label: { color: ecrTheme.status.open.text },
+      dot: { backgroundColor: ecrTheme.status.open.text },
+      labelText: 'Open',
+    };
+  }
   if (value === 'close' || value === 'approved') {
     return {
       container: { backgroundColor: ecrTheme.status.close.bg, borderColor: ecrTheme.status.close.border },
@@ -63,14 +72,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
+  badgeCompact: {
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
   dot: {
     borderRadius: 999,
     height: 7,
     width: 7,
   },
+  dotCompact: {
+    height: 6,
+    width: 6,
+  },
   label: {
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'capitalize',
+  },
+  labelCompact: {
+    fontSize: 11,
   },
 });

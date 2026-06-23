@@ -1,6 +1,5 @@
 import { PropsWithChildren, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ecrTheme } from '../theme/ecrTheme';
 
@@ -17,12 +16,6 @@ export function Screen({ title, subtitle, left, right, children }: ScreenProps) 
 
   return (
     <SafeAreaView style={styles.shell} edges={['top', 'left', 'right']}>
-      <View pointerEvents="none" style={styles.backdrop}>
-        <View style={styles.blobBlue} />
-        <View style={styles.blobRed} />
-        <View style={styles.blobGreen} />
-        <LinearGradient colors={ecrTheme.gradients.page} style={styles.fade} />
-      </View>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[styles.container, compact && styles.containerCompact]}
@@ -58,64 +51,29 @@ const styles = StyleSheet.create({
     backgroundColor: ecrTheme.colors.background,
     flex: 1,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  blobBlue: {
-    backgroundColor: 'rgba(0,91,172,0.11)',
-    borderRadius: 999,
-    height: 240,
-    opacity: 0.9,
-    position: 'absolute',
-    right: -132,
-    top: 24,
-    width: 240,
-  },
-  blobRed: {
-    backgroundColor: 'rgba(214,31,42,0.08)',
-    borderRadius: 999,
-    bottom: 28,
-    height: 200,
-    left: -84,
-    opacity: 0.72,
-    position: 'absolute',
-    width: 200,
-  },
-  blobGreen: {
-    backgroundColor: 'rgba(14,159,110,0.08)',
-    borderRadius: 999,
-    height: 280,
-    left: '14%',
-    opacity: 0.24,
-    position: 'absolute',
-    top: '28%',
-    width: 280,
-  },
-  fade: {
-    ...StyleSheet.absoluteFillObject,
-  },
   container: {
-    gap: 16,
-    paddingHorizontal: 18,
+    gap: ecrTheme.spacing.md,
+    paddingHorizontal: ecrTheme.spacing.screenX,
     paddingTop: 14,
-    paddingBottom: 172,
+    paddingBottom: ecrTheme.spacing.screenBottom,
   },
   containerCompact: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   header: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
-    marginBottom: 2,
+    gap: 14,
+    marginBottom: 4,
+    paddingVertical: 4,
   },
   headerLeft: {
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     minWidth: 0,
   },
   headerAction: {
@@ -123,26 +81,25 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-    gap: 5,
+    gap: 4,
     minWidth: 0,
   },
   kicker: {
     color: ecrTheme.colors.pertaminaBlue,
-    fontSize: 12,
+    fontSize: ecrTheme.typography.kicker.fontSize,
     fontWeight: '900',
-    letterSpacing: 0.9,
+    letterSpacing: ecrTheme.typography.kicker.letterSpacing,
     textTransform: 'uppercase',
   },
   title: {
     color: ecrTheme.colors.deepNavy,
-    fontSize: 29,
+    fontSize: ecrTheme.typography.title.fontSize,
     fontWeight: '900',
-    letterSpacing: -0.8,
-    lineHeight: 33,
+    lineHeight: ecrTheme.typography.title.lineHeight,
   },
   subtitle: {
     color: ecrTheme.colors.textSecondary,
-    fontSize: 14.5,
-    lineHeight: 21,
+    fontSize: ecrTheme.typography.body.fontSize,
+    lineHeight: ecrTheme.typography.body.lineHeight,
   },
 });

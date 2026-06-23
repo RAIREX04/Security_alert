@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Department } from '../types/models';
 import { getDepartmentGlyph, getStaffDepartmentTheme } from '../utils/staff';
@@ -34,13 +35,13 @@ export function StaffDepartmentCard({ department, onPress }: StaffDepartmentCard
         <Text selectable style={styles.title} numberOfLines={1}>
           {department.departmentName}
         </Text>
-        <Text selectable style={styles.subtitle} numberOfLines={3}>
+        <Text selectable style={styles.subtitle} numberOfLines={2}>
           {department.description ?? 'Departemen bantuan'}
         </Text>
       </View>
 
       <View style={styles.arrowWrap}>
-        <Text style={[styles.arrow, { color: theme.color }]}>›</Text>
+        <MaterialCommunityIcons name="chevron-right" size={24} color={theme.color} />
       </View>
     </Pressable>
   );
@@ -49,17 +50,13 @@ export function StaffDepartmentCard({ department, onPress }: StaffDepartmentCard
 const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
-    borderRadius: 28,
+    borderRadius: ecrTheme.radii.lg,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 14,
-    minHeight: 104,
-    padding: 16,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 2,
+    gap: 12,
+    minHeight: 92,
+    padding: 14,
+    ...ecrTheme.shadows.soft,
   },
   pressed: {
     opacity: 0.95,
@@ -67,38 +64,32 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     alignItems: 'center',
-    borderRadius: 22,
-    height: 64,
+    borderRadius: ecrTheme.radii.md,
+    height: 54,
     justifyContent: 'center',
-    width: 64,
+    width: 54,
   },
   icon: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: '900',
   },
   body: {
     flex: 1,
-    gap: 6,
+    gap: 4,
   },
   title: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
-    letterSpacing: -0.2,
   },
   subtitle: {
     color: ecrTheme.colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
   arrowWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 26,
-  },
-  arrow: {
-    fontSize: 34,
-    fontWeight: '700',
-    lineHeight: 34,
+    width: 24,
   },
 });

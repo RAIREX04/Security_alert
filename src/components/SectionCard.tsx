@@ -13,18 +13,14 @@ export function SectionCard({ children, tone = 'default' }: SectionCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: ecrTheme.colors.card,
-    borderRadius: 32,
+    borderRadius: ecrTheme.radii.lg,
     borderColor: ecrTheme.colors.border,
     borderWidth: 1,
-    gap: 14,
+    gap: ecrTheme.spacing.md,
     overflow: 'hidden',
-    padding: 18,
+    padding: ecrTheme.spacing.lg,
     borderCurve: 'continuous',
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 2,
+    ...ecrTheme.shadows.soft,
   },
 });
 
@@ -33,7 +29,7 @@ const toneStyles = StyleSheet.create({
     backgroundColor: ecrTheme.colors.card,
   },
   soft: {
-    backgroundColor: '#F4F9FF',
+    backgroundColor: ecrTheme.colors.surface,
   },
   warning: {
     backgroundColor: ecrTheme.colors.warningSoft,

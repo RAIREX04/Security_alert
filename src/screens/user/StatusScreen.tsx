@@ -7,6 +7,7 @@ import { ReportCard } from '../../components/ReportCard';
 import { UserScreenShell } from '../../components/UserScreenShell';
 import { listReportsByUser } from '../../services/report-service';
 import { useAuth } from '../../context/AuthContext';
+import { ecrTheme } from '../../theme/ecrTheme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { UserStackParamList } from '../../types/navigation';
 
@@ -59,6 +60,7 @@ export function StatusScreen({ navigation }: Props) {
             <ReportCard
               key={report.reportId}
               report={report}
+              compact
               onPress={() => navigation.navigate('ReportDetail', { report })}
             />
           ))}
@@ -70,13 +72,13 @@ export function StatusScreen({ navigation }: Props) {
 
 function StatCard({ label, value, tone }: { label: string; value: number; tone: 'open' | 'progress' | 'close' }) {
   const tones = {
-    open: { bg: '#FFF0F0', color: '#B91C1C' },
-    progress: { bg: '#DFF0FF', color: '#0B6AA8' },
-    close: { bg: '#DCFCE7', color: '#15803D' },
+    open: { bg: ecrTheme.status.open.bg, color: ecrTheme.status.open.text, border: ecrTheme.status.open.border },
+    progress: { bg: ecrTheme.status.progress.bg, color: ecrTheme.status.progress.text, border: ecrTheme.status.progress.border },
+    close: { bg: ecrTheme.status.close.bg, color: ecrTheme.status.close.text, border: ecrTheme.status.close.border },
   }[tone];
 
   return (
-    <View style={[styles.statCard, { backgroundColor: tones.bg }]}>
+    <View style={[styles.statCard, { backgroundColor: tones.bg, borderColor: tones.border }]}>
       <Text selectable style={[styles.statValue, { color: tones.color }]}>
         {value}
       </Text>
@@ -89,50 +91,51 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
 
 const styles = StyleSheet.create({
   summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D9E2EE',
-    borderRadius: 32,
+    backgroundColor: ecrTheme.colors.card,
+    borderColor: ecrTheme.colors.border,
+    borderRadius: ecrTheme.radii.lg,
     borderWidth: 1,
-    gap: 16,
-    padding: 18,
+    gap: ecrTheme.spacing.md,
+    padding: ecrTheme.spacing.lg,
+    ...ecrTheme.shadows.soft,
   },
   summaryTitle: {
-    color: '#101828',
-    fontSize: 26,
+    color: ecrTheme.colors.textPrimary,
+    fontSize: 19,
     fontWeight: '900',
-    letterSpacing: -0.6,
   },
   summarySubtitle: {
-    color: '#667085',
-    fontSize: 16,
-    lineHeight: 22,
+    color: ecrTheme.colors.textSecondary,
+    fontSize: 13.5,
+    lineHeight: 19,
   },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   statCard: {
-    borderRadius: 28,
+    borderRadius: ecrTheme.radii.md,
+    borderWidth: 1,
     flex: 1,
-    gap: 8,
+    gap: 5,
     minWidth: 96,
-    padding: 18,
+    padding: 14,
   },
   statValue: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   statLabel: {
-    color: '#475569',
-    fontSize: 15,
+    color: ecrTheme.colors.textSecondary,
+    fontSize: 12.5,
     fontWeight: '700',
   },
   loading: {
-    color: '#667085',
+    color: ecrTheme.colors.textSecondary,
   },
   list: {
-    gap: 12,
+    gap: 10,
   },
 });

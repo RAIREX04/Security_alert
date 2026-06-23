@@ -44,7 +44,7 @@ export function UserCard({ user, subtitle, onPress }: UserCardProps) {
           {user.username}
         </Text>
       </View>
-      <StatusBadge status={user.approvalStatus} />
+      <StatusBadge status={user.approvalStatus} compact />
     </Pressable>
   );
 }
@@ -54,16 +54,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: ecrTheme.colors.card,
     borderColor: ecrTheme.colors.border,
-    borderRadius: 24,
+    borderRadius: ecrTheme.radii.lg,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
-    padding: 15,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 2,
+    padding: 13,
+    ...ecrTheme.shadows.soft,
   },
   cardCompact: {
     gap: 10,
@@ -74,9 +70,9 @@ const styles = StyleSheet.create({
   },
   avatar: {
     alignItems: 'center',
-    backgroundColor: '#EEF4FF',
-    borderColor: '#D8E7FF',
-    borderRadius: 18,
+    backgroundColor: ecrTheme.colors.infoSoft,
+    borderColor: '#BFDBFE',
+    borderRadius: ecrTheme.radii.md,
     borderWidth: 1,
     height: 48,
     justifyContent: 'center',
@@ -84,7 +80,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: ecrTheme.colors.pertaminaBlue,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '900',
   },
   body: {
@@ -94,7 +90,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 15.25,
+    fontSize: 14.5,
     fontWeight: '900',
     lineHeight: 21,
   },

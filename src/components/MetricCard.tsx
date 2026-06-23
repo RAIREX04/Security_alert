@@ -25,16 +25,12 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: ecrTheme.colors.card,
     borderColor: ecrTheme.colors.border,
-    borderRadius: 24,
+    borderRadius: ecrTheme.radii.md,
     borderWidth: 1,
     flex: 1,
-    gap: 6,
-    padding: 16,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 2,
+    gap: 5,
+    padding: 14,
+    ...ecrTheme.shadows.soft,
   },
   accentBar: {
     alignSelf: 'flex-start',
@@ -44,13 +40,13 @@ const styles = StyleSheet.create({
     width: 32,
   },
   value: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   label: {
     color: ecrTheme.colors.textSecondary,
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '800',
   },
 });

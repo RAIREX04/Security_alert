@@ -6,6 +6,7 @@ import {
   type TextInputProps,
   View,
 } from 'react-native';
+import { ecrTheme } from '../theme/ecrTheme';
 
 type AuthFieldProps = TextInputProps & {
   label: string;
@@ -24,7 +25,7 @@ export const AuthField = forwardRef<TextInput, AuthFieldProps>(
         <TextInput
           ref={ref}
           placeholder={label}
-          placeholderTextColor="#8F99AB"
+          placeholderTextColor={ecrTheme.colors.textMuted}
           style={[styles.input, active && styles.inputActive, style]}
           accessibilityLabel={label}
           {...props}
@@ -40,10 +41,10 @@ AuthField.displayName = 'AuthField';
 const styles = StyleSheet.create({
   field: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D7DEE8',
-    borderRadius: 22,
-    borderWidth: 1.2,
+    backgroundColor: ecrTheme.colors.card,
+    borderColor: ecrTheme.colors.border,
+    borderRadius: ecrTheme.radii.md,
+    borderWidth: 1,
     flexDirection: 'row',
     minHeight: 52,
     shadowColor: '#0F172A',
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     alignItems: 'center',
-    backgroundColor: '#FFF1F3',
+    backgroundColor: ecrTheme.status.open.bg,
     borderRadius: 999,
     height: 30,
     justifyContent: 'center',
@@ -61,25 +62,25 @@ const styles = StyleSheet.create({
     width: 30,
   },
   iconWrapActive: {
-    backgroundColor: '#FDE6EA',
+    backgroundColor: ecrTheme.status.open.bg,
   },
   icon: {
-    color: '#DA1E37',
+    color: ecrTheme.status.open.text,
     fontSize: 13,
     fontWeight: '900',
   },
   iconActive: {
-    color: '#C81E34',
+    color: ecrTheme.status.open.text,
   },
   input: {
-    color: '#1F2937',
+    color: ecrTheme.colors.textPrimary,
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '500',
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
   inputActive: {
-    color: '#13213A',
+    color: ecrTheme.colors.textPrimary,
   },
 });

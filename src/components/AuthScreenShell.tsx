@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PertaminaLogo } from './PertaminaLogo';
+import { ecrTheme } from '../theme/ecrTheme';
 
 type AuthScreenShellProps = PropsWithChildren<{
   title: string;
@@ -38,14 +39,9 @@ export function AuthScreenShell({ title, subtitle, compact = false, footer, chil
         >
           <View style={styles.overlay} />
           <LinearGradient
-            colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.72)', 'rgba(248,251,255,0.96)']}
+            colors={['rgba(248,250,252,0.40)', 'rgba(248,250,252,0.82)', 'rgba(246,248,251,0.98)']}
             style={StyleSheet.absoluteFill}
           />
-          <View pointerEvents="none" style={styles.decorWrap}>
-            <View style={styles.decorBlue} />
-            <View style={styles.decorGreen} />
-            <View style={styles.decorRed} />
-          </View>
 
           <ScrollView
             contentInsetAdjustmentBehavior="automatic"
@@ -90,48 +86,17 @@ export function AuthScreenShell({ title, subtitle, compact = false, footer, chil
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#F8FBFF',
+    backgroundColor: ecrTheme.colors.background,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-  decorWrap: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  decorBlue: {
-    backgroundColor: 'rgba(83,147,255,0.15)',
-    borderRadius: 999,
-    height: 240,
-    left: -90,
-    position: 'absolute',
-    top: 34,
-    width: 240,
-  },
-  decorGreen: {
-    backgroundColor: 'rgba(48,179,102,0.11)',
-    borderRadius: 999,
-    bottom: 96,
-    height: 170,
-    left: -50,
-    position: 'absolute',
-    width: 170,
-  },
-  decorRed: {
-    backgroundColor: 'rgba(218,30,55,0.12)',
-    borderRadius: 999,
-    bottom: 86,
-    height: 190,
-    position: 'absolute',
-    right: -74,
-    width: 190,
+    backgroundColor: 'rgba(15,23,42,0.08)',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 22,
+    paddingHorizontal: ecrTheme.spacing.screenX,
+    paddingVertical: ecrTheme.spacing.xl,
   },
   scrollContentCompact: {
     justifyContent: 'flex-start',
@@ -145,23 +110,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   heroTitle: {
-    color: '#173260',
-    fontSize: 31,
+    color: ecrTheme.colors.deepNavy,
+    fontSize: 29,
     fontWeight: '900',
-    letterSpacing: -1.1,
-    lineHeight: 33,
+    lineHeight: 34,
     marginTop: 22,
   },
   heroTitleCompact: {
-    fontSize: 28,
+    fontSize: 25,
     lineHeight: 30,
     marginTop: 14,
   },
   heroSubtitle: {
-    color: '#5E6A80',
-    fontSize: 12.9,
+    color: ecrTheme.colors.textSecondary,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 17,
+    lineHeight: 19,
     marginTop: 12,
   },
   heroSubtitleCompact: {
@@ -174,29 +138,25 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   heroPill: {
-    backgroundColor: 'rgba(255,255,255,0.78)',
-    borderColor: '#DCE5F0',
+    backgroundColor: ecrTheme.colors.surfaceRaised,
+    borderColor: ecrTheme.colors.border,
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   heroPillText: {
-    color: '#173260',
+    color: ecrTheme.colors.deepNavy,
     fontSize: 11.2,
     fontWeight: '800',
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderColor: '#D8E2EE',
-    borderRadius: 34,
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderColor: ecrTheme.colors.border,
+    borderRadius: ecrTheme.radii.xl,
     borderWidth: 1,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.09,
-    shadowRadius: 28,
-    elevation: 2,
-    padding: 18,
+    ...ecrTheme.shadows.medium,
+    padding: ecrTheme.spacing.lg,
   },
   footerWrap: {
     marginTop: 14,

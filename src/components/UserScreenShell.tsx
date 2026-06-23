@@ -1,14 +1,13 @@
 import { PropsWithChildren, type ReactNode } from 'react';
 import {
-  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { PertaminaLogo } from './PertaminaLogo';
+import { ecrTheme } from '../theme/ecrTheme';
 
 type UserScreenShellProps = PropsWithChildren<{
   title: string;
@@ -16,49 +15,37 @@ type UserScreenShellProps = PropsWithChildren<{
   left?: ReactNode;
   right?: ReactNode;
   scrollable?: boolean;
+  compact?: boolean;
 }>;
 
-export function UserScreenShell({ title, subtitle, left, right, scrollable = true, children }: UserScreenShellProps) {
+export function UserScreenShell({ title, subtitle, left, right, scrollable = true, compact = false, children }: UserScreenShellProps) {
   const { height } = useWindowDimensions();
 
   return (
-    <ImageBackground
-      source={require('../../assets/login-background-pag.png')}
-      resizeMode="cover"
-      style={styles.flex}
-    >
-      <View style={styles.overlay} />
-      <LinearGradient
-        colors={['rgba(255,255,255,0.78)', 'rgba(248,249,251,0.92)', 'rgba(242,244,247,0.98)']}
-        style={StyleSheet.absoluteFill}
-      />
-      <View pointerEvents="none" style={styles.decorWrap}>
-        <View style={styles.decorBlue} />
-        <View style={styles.decorGreen} />
-        <View style={styles.decorRed} />
-      </View>
-
+    <View style={styles.flex}>
       {scrollable ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[styles.content, { minHeight: height }]}
+          contentContainerStyle={[styles.content, compact && styles.contentCompact, { minHeight: height }]}
         >
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               {left ? <View style={styles.left}>{left}</View> : null}
-              <PertaminaLogo size="sm" framed={false} />
+              <View style={styles.logoPill}>
+                <PertaminaLogo size="sm" framed={false} />
+              </View>
             </View>
             {right ? <View style={styles.right}>{right}</View> : null}
           </View>
 
           {title.trim() ? (
-            <View style={styles.titleWrap}>
-              <Text selectable style={styles.title}>
+            <View style={[styles.titleWrap, compact && styles.titleWrapCompact]}>
+              <Text selectable style={[styles.title, compact && styles.titleCompact]}>
                 {title}
               </Text>
               {subtitle ? (
-                <Text selectable style={styles.subtitle}>
+                <Text selectable style={[styles.subtitle, compact && styles.subtitleCompact]}>
                   {subtitle}
                 </Text>
               ) : null}
@@ -68,22 +55,24 @@ export function UserScreenShell({ title, subtitle, left, right, scrollable = tru
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.content, styles.contentNoScroll, { minHeight: height }]}>
+        <View style={[styles.content, compact && styles.contentCompact, styles.contentNoScroll, { minHeight: height }]}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               {left ? <View style={styles.left}>{left}</View> : null}
-              <PertaminaLogo size="sm" framed={false} />
+              <View style={styles.logoPill}>
+                <PertaminaLogo size="sm" framed={false} />
+              </View>
             </View>
             {right ? <View style={styles.right}>{right}</View> : null}
           </View>
 
           {title.trim() ? (
-            <View style={styles.titleWrap}>
-              <Text selectable style={styles.title}>
+            <View style={[styles.titleWrap, compact && styles.titleWrapCompact]}>
+              <Text selectable style={[styles.title, compact && styles.titleCompact]}>
                 {title}
               </Text>
               {subtitle ? (
-                <Text selectable style={styles.subtitle}>
+                <Text selectable style={[styles.subtitle, compact && styles.subtitleCompact]}>
                   {subtitle}
                 </Text>
               ) : null}
@@ -93,56 +82,26 @@ export function UserScreenShell({ title, subtitle, left, right, scrollable = tru
           <View style={styles.bodyNoScroll}>{children}</View>
         </View>
       )}
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#FAFBFC',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-  },
-  decorWrap: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  decorBlue: {
-    backgroundColor: 'rgba(128,144,166,0.07)',
-    borderRadius: 999,
-    height: 232,
-    right: -96,
-    position: 'absolute',
-    top: 92,
-    width: 232,
-  },
-  decorGreen: {
-    backgroundColor: 'rgba(148,163,184,0.05)',
-    borderRadius: 999,
-    bottom: 100,
-    height: 176,
-    left: -64,
-    position: 'absolute',
-    width: 176,
-  },
-  decorRed: {
-    backgroundColor: 'rgba(203,213,225,0.06)',
-    borderRadius: 999,
-    bottom: 84,
-    height: 184,
-    position: 'absolute',
-    right: -80,
-    width: 184,
+    backgroundColor: ecrTheme.colors.background,
   },
   content: {
     flexGrow: 1,
-    gap: 18,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 168,
+    gap: ecrTheme.spacing.md,
+    paddingHorizontal: ecrTheme.spacing.screenX,
+    paddingTop: 14,
+    paddingBottom: ecrTheme.spacing.screenBottom,
+  },
+  contentCompact: {
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   contentNoScroll: {
     flex: 1,
@@ -157,6 +116,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 4,
   },
   headerLeft: {
     alignItems: 'center',
@@ -168,6 +128,17 @@ const styles = StyleSheet.create({
   left: {
     flexShrink: 0,
   },
+  logoPill: {
+    alignItems: 'center',
+    backgroundColor: ecrTheme.colors.surfaceRaised,
+    borderColor: ecrTheme.colors.border,
+    borderRadius: ecrTheme.radii.md,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    ...ecrTheme.shadows.soft,
+  },
   right: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -176,17 +147,28 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 4,
   },
+  titleWrapCompact: {
+    gap: 5,
+    paddingTop: 0,
+  },
   title: {
-    color: '#173260',
-    fontSize: 29,
+    color: ecrTheme.colors.deepNavy,
+    fontSize: ecrTheme.typography.title.fontSize,
     fontWeight: '900',
-    letterSpacing: -1,
-    lineHeight: 32,
+    lineHeight: ecrTheme.typography.title.lineHeight,
+  },
+  titleCompact: {
+    fontSize: ecrTheme.typography.titleCompact.fontSize,
+    lineHeight: ecrTheme.typography.titleCompact.lineHeight,
   },
   subtitle: {
-    color: '#5E6A80',
-    fontSize: 13.5,
+    color: ecrTheme.colors.textSecondary,
+    fontSize: ecrTheme.typography.caption.fontSize,
     fontWeight: '600',
-    lineHeight: 19,
+    lineHeight: ecrTheme.typography.caption.lineHeight,
+  },
+  subtitleCompact: {
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

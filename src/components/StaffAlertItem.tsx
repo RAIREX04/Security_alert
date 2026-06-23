@@ -73,7 +73,7 @@ export function StaffAlertItem({ report, onPress }: StaffAlertItemProps) {
         ) : null}
       </View>
 
-      <StatusBadge status={report.status} />
+      <StatusBadge status={report.status} compact />
     </Pressable>
   );
 }
@@ -83,17 +83,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: ecrTheme.colors.card,
     borderColor: ecrTheme.colors.border,
-    borderRadius: 24,
+    borderRadius: ecrTheme.radii.lg,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 14,
-    minHeight: 84,
-    padding: 14,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 2,
+    gap: 12,
+    minHeight: 78,
+    padding: 12,
+    ...ecrTheme.shadows.soft,
   },
   cardCompact: {
     gap: 12,
@@ -105,13 +101,13 @@ const styles = StyleSheet.create({
   },
   iconWrap: {
     alignItems: 'center',
-    borderRadius: 18,
-    height: 54,
+    borderRadius: ecrTheme.radii.md,
+    height: 46,
     justifyContent: 'center',
-    width: 54,
+    width: 46,
   },
   icon: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '900',
   },
   body: {
@@ -121,8 +117,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF1F3',
-    borderColor: '#F2B8BF',
+    backgroundColor: ecrTheme.status.open.bg,
+    borderColor: ecrTheme.status.open.border,
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row',
@@ -131,21 +127,21 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   badgeText: {
-    color: ecrTheme.colors.primaryRed,
+    color: ecrTheme.status.open.text,
     fontSize: 10.5,
     fontWeight: '900',
     letterSpacing: 0.2,
     textTransform: 'uppercase',
   },
   badgeSubtext: {
-    color: ecrTheme.colors.primaryRed,
+    color: ecrTheme.status.open.text,
     flexShrink: 1,
     fontSize: 10.5,
     fontWeight: '700',
   },
   title: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 15.5,
+    fontSize: 14.5,
     fontWeight: '800',
     lineHeight: 21,
   },
@@ -156,9 +152,9 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   reviewBox: {
-    backgroundColor: '#F7FBFF',
-    borderColor: '#D9E5F5',
-    borderRadius: 16,
+    backgroundColor: ecrTheme.colors.surface,
+    borderColor: ecrTheme.colors.border,
+    borderRadius: ecrTheme.radii.md,
     borderWidth: 1,
     gap: 6,
     paddingHorizontal: 10,
@@ -171,7 +167,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   reviewLabel: {
-    color: '#102B57',
+    color: ecrTheme.colors.textPrimary,
     flex: 1,
     fontSize: 11.5,
     fontWeight: '900',
@@ -179,7 +175,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   reviewScorePill: {
-    backgroundColor: '#EAF2FF',
+    backgroundColor: ecrTheme.colors.infoSoft,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -190,7 +186,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   reviewComment: {
-    color: '#475569',
+    color: ecrTheme.colors.textSecondary,
     fontSize: 12,
     lineHeight: 17,
   },

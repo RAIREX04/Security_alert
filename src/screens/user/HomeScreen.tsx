@@ -194,7 +194,7 @@ function formatRelativeTime(value?: string) {
 const styles = StyleSheet.create({
   body: {
     flex: 1,
-    gap: 16,
+    gap: ecrTheme.spacing.md,
   },
   hero: {
     gap: 8,
@@ -208,27 +208,26 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '900',
-    letterSpacing: -1.1,
-    lineHeight: 35,
+    lineHeight: 33,
   },
   heroSubtitle: {
     color: ecrTheme.colors.textSecondary,
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: '600',
     lineHeight: 20,
     maxWidth: 320,
   },
   accentStrip: {
     flexDirection: 'row',
-    gap: 2,
-    marginTop: 10,
+    gap: 3,
+    marginTop: 8,
     width: 160,
   },
   accentSegment: {
     borderRadius: 999,
-    height: 8,
+    height: 5,
     flex: 1,
   },
   departmentRow: {
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
@@ -259,7 +258,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   linkButtonText: {
-    color: '#16A34A',
+    color: ecrTheme.colors.pertaminaBlue,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -268,19 +267,15 @@ const styles = StyleSheet.create({
   },
   historyRow: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(220,230,245,0.96)',
-    borderRadius: 22,
+    backgroundColor: ecrTheme.colors.card,
+    borderColor: ecrTheme.colors.border,
+    borderRadius: ecrTheme.radii.md,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    shadowColor: '#0B1F3A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 1,
+    paddingVertical: 11,
+    ...ecrTheme.shadows.soft,
   },
   historyIconWrap: {
     alignItems: 'center',
@@ -304,13 +299,13 @@ const styles = StyleSheet.create({
   },
   historyTitle: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '800',
     lineHeight: 19,
   },
   historySubtitle: {
     color: ecrTheme.colors.textSecondary,
-    fontSize: 12.5,
+    fontSize: 12,
     lineHeight: 17,
   },
   historyTime: {

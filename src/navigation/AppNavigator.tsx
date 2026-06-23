@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, type ComponentType } from 'react';
 import { View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ecrTheme } from '../theme/ecrTheme';
 
 import { CenteredLoadingScreen } from '../components/CenteredLoadingScreen';
 import { useAuth } from '../context/AuthContext';
@@ -100,36 +101,7 @@ function RoleTabs() {
   if (user.role === 'staff') {
     return (
       <staffTabs.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: '#DA1E37',
-          tabBarInactiveTintColor: '#667085',
-          tabBarLabelStyle: { fontSize: 11.5, fontWeight: '800' },
-          tabBarHideOnKeyboard: true,
-          tabBarShowLabel: true,
-          tabBarStyle: {
-            backgroundColor: 'rgba(255,255,255,0.96)',
-            borderRadius: 32,
-            borderTopColor: '#D9E3EF',
-            borderTopWidth: 1,
-            bottom: 16,
-            elevation: 8,
-            height: 86,
-            left: 16,
-            paddingBottom: 12,
-            paddingTop: 12,
-            position: 'absolute',
-            right: 16,
-            shadowColor: '#0F172A',
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.08,
-            shadowRadius: 24,
-          },
-          tabBarItemStyle: {
-            borderRadius: 24,
-            paddingTop: 6,
-          },
-        }}
+        screenOptions={tabScreenOptions}
       >
         <staffTabs.Screen
           name="StaffDashboard"
@@ -178,35 +150,7 @@ function RoleTabs() {
   if (user.role === 'admin') {
     return (
       <adminTabs.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: '#DA1E37',
-          tabBarInactiveTintColor: '#667085',
-          tabBarLabelStyle: { fontSize: 11.5, fontWeight: '800' },
-          tabBarHideOnKeyboard: true,
-          tabBarStyle: {
-            backgroundColor: 'rgba(255,255,255,0.96)',
-            borderRadius: 32,
-            borderTopColor: '#D9E3EF',
-            borderTopWidth: 1,
-            bottom: 16,
-            elevation: 8,
-            height: 86,
-            left: 16,
-            paddingBottom: 12,
-            paddingTop: 12,
-            position: 'absolute',
-            right: 16,
-            shadowColor: '#0F172A',
-            shadowOffset: { width: 0, height: 12 },
-            shadowOpacity: 0.08,
-            shadowRadius: 24,
-          },
-          tabBarItemStyle: {
-            borderRadius: 24,
-            paddingTop: 6,
-          },
-        }}
+        screenOptions={tabScreenOptions}
       >
         <adminTabs.Screen
           name="AdminDashboard"
@@ -264,35 +208,7 @@ function RoleTabs() {
 
   return (
     <userTabs.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: '#DA1E37',
-        tabBarInactiveTintColor: '#667085',
-        tabBarLabelStyle: { fontSize: 11.5, fontWeight: '800' },
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          backgroundColor: 'rgba(255,255,255,0.96)',
-          borderRadius: 32,
-          borderTopColor: '#D9E3EF',
-          borderTopWidth: 1,
-          bottom: 16,
-          elevation: 8,
-          height: 86,
-          left: 16,
-          paddingBottom: 12,
-          paddingTop: 12,
-          position: 'absolute',
-          right: 16,
-          shadowColor: '#0F172A',
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.08,
-          shadowRadius: 24,
-        },
-        tabBarItemStyle: {
-          borderRadius: 24,
-          paddingTop: 6,
-        },
-      }}
+      screenOptions={tabScreenOptions}
     >
       <userTabs.Screen
         name="UserHome"
@@ -386,11 +302,38 @@ const defaultTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: '#F9FBFF',
-    card: '#FFFFFF',
-    text: '#0F2C57',
-    border: '#D7E3F0',
-    primary: '#DA1E37',
+    background: ecrTheme.colors.background,
+    card: ecrTheme.colors.card,
+    text: ecrTheme.colors.textPrimary,
+    border: ecrTheme.colors.border,
+    primary: ecrTheme.colors.primaryRed,
+  },
+};
+
+const tabScreenOptions = {
+  headerShown: false,
+  tabBarActiveTintColor: ecrTheme.colors.pertaminaBlue,
+  tabBarInactiveTintColor: ecrTheme.colors.textSecondary,
+  tabBarLabelStyle: { fontSize: 11, fontWeight: '800' as const },
+  tabBarHideOnKeyboard: true,
+  tabBarShowLabel: true,
+  tabBarStyle: {
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: ecrTheme.radii.xl,
+    borderTopColor: ecrTheme.colors.border,
+    borderTopWidth: 1,
+    bottom: 14,
+    height: 78,
+    left: 14,
+    paddingBottom: 10,
+    paddingTop: 9,
+    position: 'absolute' as const,
+    right: 14,
+    ...ecrTheme.shadows.medium,
+  },
+  tabBarItemStyle: {
+    borderRadius: ecrTheme.radii.lg,
+    paddingTop: 4,
   },
 };
 
@@ -421,18 +364,18 @@ function TabIcon({
     <View
       style={{
         alignItems: 'center',
-        backgroundColor: focused ? '#EEF4FF' : 'transparent',
-        borderColor: focused ? '#D9E7FF' : 'transparent',
+        backgroundColor: focused ? ecrTheme.colors.infoSoft : 'transparent',
+        borderColor: focused ? '#BFDBFE' : 'transparent',
         borderRadius: 999,
         borderWidth: focused ? 1 : 0,
-        height: 34,
+        height: 32,
         justifyContent: 'center',
-        width: 34,
+        width: 32,
       }}
     >
       <MaterialCommunityIcons
         name={iconName as any}
-        color={focused ? '#2563EB' : color ?? '#667085'}
+        color={focused ? ecrTheme.colors.pertaminaBlue : color ?? ecrTheme.colors.textSecondary}
         size={(size ?? 20) + 1}
       />
     </View>

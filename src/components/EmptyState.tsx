@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 import { ecrTheme } from '../theme/ecrTheme';
 
@@ -11,7 +12,7 @@ export function EmptyState({ title, description }: EmptyStateProps) {
     <View style={styles.wrapper}>
       <View style={styles.iconOuter}>
         <View style={styles.icon}>
-          <Text style={styles.iconText}>∅</Text>
+          <MaterialCommunityIcons name="file-search-outline" size={22} color={ecrTheme.colors.pertaminaBlue} />
         </View>
       </View>
       <Text selectable style={styles.title}>
@@ -29,47 +30,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: ecrTheme.colors.card,
     borderColor: ecrTheme.colors.border,
-    borderRadius: 30,
+    borderRadius: ecrTheme.radii.lg,
     borderWidth: 1,
     gap: 10,
-    padding: 20,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 2,
+    padding: ecrTheme.spacing.lg,
+    ...ecrTheme.shadows.soft,
   },
   iconOuter: {
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 24,
+    backgroundColor: ecrTheme.colors.infoSoft,
+    borderRadius: ecrTheme.radii.md,
     padding: 6,
   },
   icon: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: ecrTheme.colors.card,
     borderColor: '#D8E7FF',
-    borderRadius: 18,
+    borderRadius: ecrTheme.radii.sm,
     borderWidth: 1,
-    height: 58,
+    height: 52,
     justifyContent: 'center',
-    width: 58,
-  },
-  iconText: {
-    color: ecrTheme.colors.pertaminaBlue,
-    fontSize: 20,
-    fontWeight: '900',
+    width: 52,
   },
   title: {
     color: ecrTheme.colors.textPrimary,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     textAlign: 'center',
   },
   description: {
     color: ecrTheme.colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
     textAlign: 'center',
   },
 });

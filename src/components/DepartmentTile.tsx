@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Department } from '../types/models';
@@ -13,8 +14,8 @@ type DepartmentTileProps = {
 
 export function DepartmentTile({ department, subtitle, onPress, trailing, selected = false }: DepartmentTileProps) {
   const accent = department.color ?? ecrTheme.colors.pertaminaBlue;
-  const tint = `${accent}10`;
-  const borderTint = selected ? `${accent}45` : `${accent}22`;
+  const tint = `${accent}0D`;
+  const borderTint = selected ? `${accent}55` : `${accent}22`;
   const label = `${department.departmentName}, ${subtitle ?? department.description ?? 'tanpa deskripsi'}`;
 
   return (
@@ -28,8 +29,8 @@ export function DepartmentTile({ department, subtitle, onPress, trailing, select
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: tint, borderColor: borderTint },
-        pressed && onPress ? styles.pressed : null,
         selected && styles.cardSelected,
+        pressed && onPress ? styles.pressed : null,
       ]}
     >
       <View style={[styles.mark, { backgroundColor: accent }]}>
@@ -50,7 +51,7 @@ export function DepartmentTile({ department, subtitle, onPress, trailing, select
 
       <View style={styles.actionPill}>
         <Text style={[styles.actionText, { color: accent }]}>Pilih departemen</Text>
-        <Text style={[styles.actionArrow, { color: accent }]}>›</Text>
+        <MaterialCommunityIcons name="chevron-right" size={17} color={accent} />
       </View>
 
       {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
@@ -69,23 +70,18 @@ function getBadgeText(code?: string | null) {
 const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
-    borderRadius: 28,
+    borderRadius: ecrTheme.radii.lg,
     borderWidth: 1,
     flex: 1,
-    minHeight: 188,
+    minHeight: 172,
     overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingTop: 14,
     paddingBottom: 12,
-    shadowColor: ecrTheme.colors.deepNavy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 16,
-    elevation: 2,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    ...ecrTheme.shadows.soft,
   },
   cardSelected: {
-    shadowOpacity: 0.11,
-    shadowRadius: 20,
+    borderWidth: 1.5,
   },
   pressed: {
     opacity: 0.96,
@@ -94,33 +90,31 @@ const styles = StyleSheet.create({
   mark: {
     alignItems: 'center',
     alignSelf: 'center',
-    borderRadius: 16,
-    height: 58,
+    borderRadius: ecrTheme.radii.md,
+    height: 52,
     justifyContent: 'center',
-    width: 58,
+    width: 52,
   },
   markText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: '900',
-    letterSpacing: -0.6,
   },
   title: {
-    fontSize: 14,
+    fontSize: 12.5,
     fontWeight: '900',
-    letterSpacing: -0.2,
-    lineHeight: 17,
-    marginTop: 10,
-    minHeight: 34,
+    lineHeight: 16,
+    marginTop: 9,
+    minHeight: 30,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
   subtitle: {
-    color: '#667085',
-    fontSize: 11.5,
+    color: ecrTheme.colors.textSecondary,
+    fontSize: 11,
     lineHeight: 15,
-    marginTop: 6,
-    minHeight: 32,
+    marginTop: 5,
+    minHeight: 30,
     textAlign: 'center',
   },
   spacer: {
@@ -129,23 +123,16 @@ const styles = StyleSheet.create({
   actionPill: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
+    backgroundColor: ecrTheme.colors.card,
+    borderRadius: ecrTheme.radii.full,
     flexDirection: 'row',
     justifyContent: 'center',
-    minHeight: 38,
-    paddingHorizontal: 12,
+    minHeight: 34,
+    paddingHorizontal: 10,
   },
   actionText: {
-    fontSize: 12.5,
+    fontSize: 11.5,
     fontWeight: '900',
-    letterSpacing: -0.1,
-  },
-  actionArrow: {
-    fontSize: 18,
-    fontWeight: '900',
-    lineHeight: 18,
-    marginLeft: 4,
   },
   trailing: {
     position: 'absolute',
