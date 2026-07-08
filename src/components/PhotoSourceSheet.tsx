@@ -1,4 +1,6 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type PhotoSourceSheetProps = {
   visible: boolean;
@@ -17,6 +19,8 @@ export function PhotoSourceSheet({
   title = 'Pilih sumber foto',
   description = 'Ambil foto langsung dari kamera atau pilih dari galeri.',
 }: PhotoSourceSheetProps) {
+  const insets = useSafeAreaInsets();
+
   const openAfterClose = (action: () => void) => {
     onClose();
     setTimeout(action, 250);
@@ -25,7 +29,10 @@ export function PhotoSourceSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheetWrap} pointerEvents="box-none">
+      <View
+        style={[styles.sheetWrap, { paddingBottom: Math.max(insets.bottom + 18, 34) }]}
+        pointerEvents="box-none"
+      >
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <Text style={styles.title}>{title}</Text>
@@ -33,7 +40,7 @@ export function PhotoSourceSheet({
 
           <View style={styles.options}>
             <OptionRow
-              icon="◉"
+              icon="camera-outline"
               title="Buka kamera"
               subtitle="Foto langsung dari perangkat"
               onPress={() => {
@@ -41,7 +48,7 @@ export function PhotoSourceSheet({
               }}
             />
             <OptionRow
-              icon="▣"
+              icon="image-multiple-outline"
               title="Pilih dari galeri"
               subtitle="Gunakan foto yang sudah ada"
               onPress={() => {
@@ -73,7 +80,7 @@ function OptionRow({
       style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
     >
       <View style={styles.optionIcon}>
-        <Text style={styles.optionIconText}>{icon}</Text>
+        <MaterialCommunityIcons name={icon as any} size={27} color="#1D4ED8" />
       </View>
       <View style={styles.optionText}>
         <Text style={styles.optionTitle}>{title}</Text>
@@ -94,6 +101,8 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: '#F8FAFF',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingHorizontal: 20,
@@ -144,11 +153,6 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: 'center',
     width: 48,
-  },
-  optionIconText: {
-    color: '#1D4ED8',
-    fontSize: 18,
-    fontWeight: '900',
   },
   optionText: {
     flex: 1,

@@ -15,7 +15,7 @@ export async function registerUser(payload: {
   email?: string | null;
   pin: string;
   phoneNumber?: string | null;
-  photoUrl?: string | null;
+  photoUrl: string;
 }): Promise<unknown> {
   const response = await api.post('/auth/register-user', payload);
   return response.data;
@@ -28,7 +28,7 @@ export async function registerStaff(payload: {
   pin: string;
   departmentId: number;
   phoneNumber?: string | null;
-  photoUrl?: string | null;
+  photoUrl: string;
 }): Promise<unknown> {
   const response = await api.post('/auth/register-staff', payload);
   return response.data;

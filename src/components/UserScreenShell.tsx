@@ -1,5 +1,6 @@
 import { PropsWithChildren, type ReactNode } from 'react';
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,9 +17,21 @@ type UserScreenShellProps = PropsWithChildren<{
   right?: ReactNode;
   scrollable?: boolean;
   compact?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }>;
 
-export function UserScreenShell({ title, subtitle, left, right, scrollable = true, compact = false, children }: UserScreenShellProps) {
+export function UserScreenShell({
+  title,
+  subtitle,
+  left,
+  right,
+  scrollable = true,
+  compact = false,
+  refreshing = false,
+  onRefresh,
+  children,
+}: UserScreenShellProps) {
   const { height } = useWindowDimensions();
 
   return (
@@ -28,6 +41,11 @@ export function UserScreenShell({ title, subtitle, left, right, scrollable = tru
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.content, compact && styles.contentCompact, { minHeight: height }]}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ecrTheme.colors.pertaminaBlue} />
+            ) : undefined
+          }
         >
           <View style={styles.header}>
             <View style={styles.headerLeft}>

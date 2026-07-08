@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Report } from '../types/models';
 import { formatDate, formatStatus } from '../utils/format';
+import { getDepartmentForReport, getDepartmentIconName, getStaffDepartmentTheme } from '../utils/staff';
 import { StatusBadge } from './StatusBadge';
 import { ecrTheme } from '../theme/ecrTheme';
 
@@ -9,12 +10,17 @@ type ReportCardProps = {
   report: Report;
   onPress?: () => void;
   compact?: boolean;
+  variant?: 'default' | 'userHistory';
 };
 
-export function ReportCard({ report, onPress, compact = false }: ReportCardProps) {
+export function ReportCard({ report, onPress, compact = false, variant = 'default' }: ReportCardProps) {
   const title = report.department ?? `Departemen #${report.departmentId}`;
   const statusText = formatStatus(report.status);
   const tone = getTone(report.status);
+  const department = getDepartmentForReport(report);
+  const departmentTone = getStaffDepartmentTheme(department);
+  const departmentIconName = getDepartmentIconName(department.departmentCode);
+  const isUserHistory = variant === 'userHistory';
   const requesterName = report.reporter?.fullName ?? 'Peminta bantuan';
   const requesterReview = {
     score: report.requesterRatingScore ?? report.ratingScore,
@@ -34,48 +40,68 @@ export function ReportCard({ report, onPress, compact = false }: ReportCardProps
       style={({ pressed }) => [
         styles.card,
         compact && styles.cardCompact,
+        isUserHistory && styles.userHistoryCard,
         { backgroundColor: tone.background, borderColor: tone.border },
         pressed && onPress ? styles.pressed : null,
       ]}
     >
-      <View style={styles.topRow}>
-        <View style={[styles.iconWrap, compact && styles.iconWrapCompact, { backgroundColor: tone.iconBackground }]}>
-          <Text style={[styles.iconText, compact && styles.iconTextCompact, { color: tone.iconColor }]}>{tone.icon}</Text>
+      <View style={[styles.topRow, isUserHistory && styles.userHistoryTopRow]}>
+        <View
+          style={[
+            styles.iconWrap,
+            compact && styles.iconWrapCompact,
+            isUserHistory && styles.userHistoryIconWrap,
+            { backgroundColor: departmentTone.soft },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={departmentIconName as any}
+            size={compact ? 20 : 22}
+            color={departmentTone.color}
+          />
         </View>
         <View style={styles.headerText}>
-          <Text selectable style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 1 : 2}>
+          <Text
+            selectable
+            style={[styles.title, compact && styles.titleCompact, isUserHistory && styles.userHistoryTitle]}
+            numberOfLines={isUserHistory ? 2 : compact ? 1 : 2}
+          >
             {title}
           </Text>
-          <Text selectable style={[styles.meta, compact && styles.metaCompact]} numberOfLines={compact ? 1 : 2}>
+          <Text selectable style={[styles.meta, compact && styles.metaCompact]} numberOfLines={isUserHistory ? 2 : compact ? 1 : 2}>
             {formatDate(report.createdAt)}
           </Text>
         </View>
         <StatusBadge status={statusText} compact={compact} />
       </View>
 
-      <Text selectable style={[styles.description, compact && styles.descriptionCompact]} numberOfLines={compact ? 1 : 2}>
+      <Text
+        selectable
+        style={[styles.description, compact && styles.descriptionCompact, isUserHistory && styles.userHistoryDescription]}
+        numberOfLines={isUserHistory ? 3 : compact ? 1 : 2}
+      >
         {report.description}
       </Text>
 
-      <View style={styles.locationRow}>
+      <View style={[styles.locationRow, isUserHistory && styles.userHistoryLocationRow]}>
         <MaterialCommunityIcons
           name="map-marker-outline"
           size={compact ? 15 : 16}
           color={ecrTheme.colors.textSecondary}
         />
-        <Text selectable style={[styles.location, compact && styles.locationCompact]} numberOfLines={compact ? 1 : 2}>
+        <Text selectable style={[styles.location, compact && styles.locationCompact]} numberOfLines={isUserHistory ? 3 : compact ? 1 : 2}>
           {report.incidentLocationText}
         </Text>
       </View>
 
       {report.status === 'close' && hasRequesterReview ? (
-        <View style={[styles.reviewCard, compact && styles.reviewCardCompact]}>
+        <View style={[styles.reviewCard, compact && styles.reviewCardCompact, isUserHistory && styles.userHistoryReviewCard]}>
           <View style={styles.reviewHeader}>
-            <View>
+            <View style={styles.reviewHeaderText}>
               <Text selectable style={[styles.reviewTitle, compact && styles.reviewTitleCompact]}>
                 Review
               </Text>
-              <Text selectable style={[styles.reviewSubtitle, compact && styles.reviewSubtitleCompact]} numberOfLines={compact ? 1 : 2}>
+              <Text selectable style={[styles.reviewSubtitle, compact && styles.reviewSubtitleCompact]} numberOfLines={isUserHistory ? 2 : compact ? 1 : 2}>
                 Ringkasan penilaian dari peminta bantuan
               </Text>
             </View>
@@ -85,7 +111,7 @@ export function ReportCard({ report, onPress, compact = false }: ReportCardProps
               </Text>
             </View>
           </View>
-          <View style={[styles.reviewItem, compact && styles.reviewItemCompact]}>
+          <View style={[styles.reviewItem, compact && styles.reviewItemCompact, isUserHistory && styles.userHistoryReviewItem]}>
             <View style={styles.reviewItemHeader}>
               <View style={styles.reviewItemLabelWrap}>
                 <View style={styles.reviewDot} />
@@ -109,8 +135,8 @@ export function ReportCard({ report, onPress, compact = false }: ReportCardProps
       ) : null}
 
       {onPress ? (
-        <Text selectable style={[styles.detailHint, compact && styles.detailHintCompact]}>
-          Tap untuk lihat detail
+        <Text selectable style={[styles.detailHint, compact && styles.detailHintCompact, isUserHistory && styles.userHistoryDetailHint]}>
+          Lihat detail alert
         </Text>
       ) : null}
     </Pressable>
@@ -123,7 +149,6 @@ function getTone(status: string) {
     return {
       background: ecrTheme.colors.card,
       border: ecrTheme.colors.border,
-      icon: 'O',
       iconBackground: '#FFE4E6',
       iconColor: ecrTheme.status.open.text,
     };
@@ -132,7 +157,6 @@ function getTone(status: string) {
     return {
       background: ecrTheme.colors.card,
       border: ecrTheme.colors.border,
-      icon: 'P',
       iconBackground: '#DBEAFE',
       iconColor: ecrTheme.status.progress.text,
     };
@@ -140,7 +164,6 @@ function getTone(status: string) {
   return {
     background: ecrTheme.colors.card,
     border: ecrTheme.colors.border,
-    icon: 'C',
     iconBackground: '#D1FAE5',
     iconColor: ecrTheme.status.close.text,
   };
@@ -159,6 +182,12 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
   },
+  userHistoryCard: {
+    borderColor: ecrTheme.colors.border,
+    borderRadius: 22,
+    gap: 10,
+    padding: 14,
+  },
   pressed: {
     opacity: 0.96,
   },
@@ -167,6 +196,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
+  },
+  userHistoryTopRow: {
+    alignItems: 'center',
   },
   iconWrap: {
     alignItems: 'center',
@@ -180,12 +212,10 @@ const styles = StyleSheet.create({
     height: 42,
     width: 42,
   },
-  iconText: {
-    fontSize: 19,
-    fontWeight: '900',
-  },
-  iconTextCompact: {
-    fontSize: 17,
+  userHistoryIconWrap: {
+    borderRadius: 16,
+    height: 46,
+    width: 46,
   },
   headerText: {
     flex: 1,
@@ -199,6 +229,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   titleCompact: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  userHistoryTitle: {
     fontSize: 14,
     lineHeight: 18,
   },
@@ -220,10 +254,18 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 17,
   },
+  userHistoryDescription: {
+    color: ecrTheme.colors.textPrimary,
+    fontSize: 12.5,
+    lineHeight: 18,
+  },
   locationRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 8,
+  },
+  userHistoryLocationRow: {
+    marginTop: -2,
   },
   location: {
     color: '#475569',
@@ -246,11 +288,20 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 10,
   },
+  userHistoryReviewCard: {
+    backgroundColor: '#F8FBFF',
+    borderRadius: 18,
+    padding: 10,
+  },
   reviewHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'space-between',
+  },
+  reviewHeaderText: {
+    flex: 1,
+    minWidth: 0,
   },
   reviewTitle: {
     color: ecrTheme.colors.textPrimary,
@@ -297,6 +348,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 9,
+  },
+  userHistoryReviewItem: {
+    borderRadius: 16,
   },
   reviewItemHeader: {
     alignItems: 'center',
@@ -352,6 +406,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   detailHintCompact: {
+    fontSize: 12.5,
+  },
+  userHistoryDetailHint: {
+    color: ecrTheme.colors.pertaminaBlue,
     fontSize: 12.5,
   },
 });

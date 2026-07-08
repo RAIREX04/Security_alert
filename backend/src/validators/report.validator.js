@@ -7,6 +7,7 @@ const idParams = z.object({
 const createReportBody = z.object({
   departmentId: z.coerce.number().int().positive(),
   sourceDepartmentId: z.coerce.number().int().positive().optional().nullable(),
+  clientSubmissionId: z.string().min(6).max(100).optional().nullable(),
   description: z.string().min(3),
   incidentLocationText: z.string().min(3),
   incidentLatitude: z.coerce.number().optional().nullable(),

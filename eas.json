@@ -6,16 +6,37 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_API_BASE_URL": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_BASE_URL_ANDROID_EMULATOR": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_BASE_URL_ANDROID_DEVICE": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_FALLBACK_URL": "http://security-alerts.pertaarungas.com/api"
+      }
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "preview",
+        "EXPO_PUBLIC_API_BASE_URL": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_BASE_URL_ANDROID_EMULATOR": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_BASE_URL_ANDROID_DEVICE": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_FALLBACK_URL": "http://security-alerts.pertaarungas.com/api"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_BASE_URL_ANDROID_EMULATOR": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_BASE_URL_ANDROID_DEVICE": "http://security-alerts.pertaarungas.com/api",
+        "EXPO_PUBLIC_API_FALLBACK_URL": "http://security-alerts.pertaarungas.com/api"
+      }
     }
   },
   "submit": {

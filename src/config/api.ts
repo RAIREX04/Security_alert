@@ -68,11 +68,12 @@ export function getAccessToken() {
 export function getApiErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{ message?: string }>;
-    return (
-      axiosError.response?.data?.message ||
-      `${axiosError.message} (${axiosError.config?.baseURL || env.apiBaseUrl})` ||
-      'Terjadi kesalahan jaringan.'
-    );
+    const method = axiosError.config?.method?.toUpperCase();
+    const url = axiosError.config?.url;
+    const baseURL = axiosError.config?.baseURL || env.apiBaseUrl;
+    const endpoint = [method, `${baseURL}${url ?? ''}`].filter(Boolean).join(' ');
+    const message = axiosError.response?.data?.message || axiosError.message || 'Terjadi kesalahan jaringan.';
+    return endpoint ? `${message} (${endpoint})` : message;
   }
 
   if (error instanceof Error) {

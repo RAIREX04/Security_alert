@@ -78,16 +78,6 @@ export function ProfileScreen({ navigation }: Props) {
       title="Profile"
       subtitle="Kelola identitas, fungsi, departemen, dan sesi login Anda."
       left={<HeaderBackButton onPress={() => navigation.navigate('StaffDashboard')} />}
-      right={
-        <Pressable
-          onPress={() => profile && navigation.navigate('EditProfile', { user: profile })}
-          accessibilityRole="button"
-          accessibilityLabel="Edit profile"
-          style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
-        >
-          <Text style={styles.editButtonText}>✎</Text>
-        </Pressable>
-      }
     >
       {!profile ? (
         <EmptyState title="Profil tidak ditemukan" description="Coba login ulang untuk memuat profil Anda." />

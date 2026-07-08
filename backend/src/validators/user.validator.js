@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const pinSchema = z.string().regex(/^\d{6}$/, 'PIN wajib tepat 6 angka');
+const passwordSchema = z.string().min(6, 'Password minimal 6 karakter');
 const optionalEmail = z.preprocess(
   (value) => value === '' ? undefined : value,
   z.string().email().optional().nullable(),
@@ -13,7 +13,7 @@ const createUserBody = z.object({
   fullName: z.string().min(3),
   username: z.string().min(3),
   email: optionalEmail,
-  pin: pinSchema,
+  pin: passwordSchema,
   roleId: z.coerce.number().int().positive().optional(),
   roleName: z.enum(['admin', 'staff', 'user']).optional(),
   departmentId: z.coerce.number().int().positive().optional().nullable(),
@@ -28,7 +28,7 @@ const updateUserBody = z.object({
   fullName: z.string().min(3).optional(),
   username: z.string().min(3).optional(),
   email: optionalEmail,
-  pin: pinSchema.optional(),
+  pin: passwordSchema.optional(),
   roleId: z.coerce.number().int().positive().optional(),
   departmentId: z.coerce.number().int().positive().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),

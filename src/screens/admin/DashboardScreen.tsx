@@ -1,5 +1,6 @@
 ﻿import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -13,7 +14,7 @@ import { UserCard } from '../../components/UserCard';
 import { listDepartments } from '../../services/department-service';
 import { listReports } from '../../services/report-service';
 import { listUsers } from '../../services/user-service';
-import { getDepartmentGlyph, getStaffDepartmentTheme } from '../../utils/staff';
+import { getDepartmentIconName, getStaffDepartmentTheme } from '../../utils/staff';
 import type { AdminStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'AdminDashboard'>;
@@ -79,6 +80,8 @@ export function DashboardScreen({ navigation }: Props) {
     <Screen
       title="Panel Admin"
       subtitle="Kelola user, staff, departemen, dan seluruh alert dari satu tempat."
+      refreshing={usersQuery.isFetching || pendingStaffQuery.isFetching || reportsQuery.isFetching || departmentsQuery.isFetching}
+      onRefresh={() => void refetchAll()}
       right={
         <Pressable
           onPress={() => void refetchAll()}
@@ -86,7 +89,7 @@ export function DashboardScreen({ navigation }: Props) {
           accessibilityLabel="Refresh dashboard"
           style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}
         >
-          <Text style={styles.refreshButtonIcon}>↻</Text>
+          <MaterialCommunityIcons name="refresh" size={22} color="#101828" />
         </Pressable>
       }
     >
@@ -151,7 +154,9 @@ export function DashboardScreen({ navigation }: Props) {
           <EmptyState title="Belum ada departemen" description="Data departemen akan tampil di sini." />
         ) : (
           <View style={styles.departmentList}>
-            {departmentRows.map(({ department, reportCount, staffCount, theme }) => (
+            {departmentRows.map(({ department, reportCount, staffCount, theme }) => {
+              const iconName = getDepartmentIconName(department.departmentCode);
+              return (
               <Pressable
                 key={department.departmentId}
                 onPress={() => navigation.navigate('DepartmentDetail', { department })}
@@ -161,7 +166,7 @@ export function DashboardScreen({ navigation }: Props) {
               >
                 <View style={[styles.departmentStripe, { backgroundColor: theme.color }]} />
                 <View style={[styles.departmentIconWrap, { backgroundColor: theme.soft }]}>
-                  <Text style={[styles.departmentIcon, { color: theme.color }]}>{getDepartmentGlyph(department.departmentCode)}</Text>
+                  <MaterialCommunityIcons name={iconName as any} size={28} color={theme.color} />
                 </View>
                 <View style={styles.departmentBody}>
                   <Text selectable style={styles.departmentTitle} numberOfLines={2}>
@@ -172,7 +177,8 @@ export function DashboardScreen({ navigation }: Props) {
                   </Text>
                 </View>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
         )}
       </SectionCard>
@@ -393,10 +399,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 56,
   },
-  departmentIcon: {
-    fontSize: 24,
-    fontWeight: '900',
-  },
   departmentBody: {
     flex: 1,
     gap: 4,
@@ -428,11 +430,6 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 44,
-  },
-  refreshButtonIcon: {
-    color: '#101828',
-    fontSize: 22,
-    fontWeight: '900',
   },
   pressed: {
     opacity: 0.92,

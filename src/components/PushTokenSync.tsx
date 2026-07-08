@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as Network from 'expo-network';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { registerPushToken, removePushToken } from '../services/notification-service';
@@ -12,14 +13,16 @@ function getExpoProjectId() {
 export function PushTokenSync() {
   const { user } = useAuth();
   const registeredTokenRef = useRef<string | null>(null);
+  const networkState = Network.useNetworkState();
   const userSyncKey = `${user?.userId ?? 'none'}:${user?.role ?? 'none'}:${user?.approvalStatus ?? 'none'}:${user?.isActive ? '1' : '0'}`;
   const isExpoGo = Constants.appOwnership === 'expo';
+  const isOnline = networkState.isInternetReachable ?? networkState.isConnected ?? true;
 
   useEffect(() => {
     let active = true;
 
     const sync = async () => {
-      if (Platform.OS === 'web' || isExpoGo) {
+      if (Platform.OS === 'web' || isExpoGo || !isOnline) {
         return;
       }
 
@@ -75,7 +78,7 @@ export function PushTokenSync() {
         registeredTokenRef.current = null;
       }
     };
-  }, [isExpoGo, userSyncKey]);
+  }, [isExpoGo, isOnline, userSyncKey]);
 
   return null;
 }

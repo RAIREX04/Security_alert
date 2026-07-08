@@ -77,7 +77,7 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "staff-alerts-alarm-v2",
+          "defaultChannel": "staff-alerts-alarm-v3",
           "sounds": [
             "./assets/sounds/alarm_sound_effect.mp3"
           ]

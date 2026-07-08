@@ -1,5 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { EmptyState } from '../../components/EmptyState';
 import { HeaderBackButton } from '../../components/HeaderBackButton';
@@ -10,12 +12,16 @@ import { UserCard } from '../../components/UserCard';
 import { getDepartmentStats } from '../../services/department-service';
 import { listReports } from '../../services/report-service';
 import { listUsers } from '../../services/user-service';
-import { getAverageResolution, getDepartmentGlyph, getStaffDepartmentTheme } from '../../utils/staff';
+import { getAverageRating, getAverageResolution, getDepartmentIconName, getStaffDepartmentTheme } from '../../utils/staff';
 import type { Department } from '../../types/models';
 
 export function DepartmentDetailScreen({ navigation, route }: any) {
   const department: Department = route.params.department;
   const theme = getStaffDepartmentTheme(department);
+  const iconName = getDepartmentIconName(department.departmentCode);
+  const queryClient = useQueryClient();
+  const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
+  const [expandedHistoryStaffId, setExpandedHistoryStaffId] = useState<number | null>(null);
 
   const statsQuery = useQuery({
     queryKey: ['department-stats', department.departmentId],
@@ -30,28 +36,71 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
     queryFn: () => listReports({ departmentId: department.departmentId }),
   });
 
+  const dashboardUsers = queryClient.getQueryData<any[]>(['users', 'admin-dashboard']) ?? [];
+  const dashboardReports = queryClient.getQueryData<any[]>(['reports', 'admin-dashboard']) ?? [];
   const stats = statsQuery.data ?? {};
-  const staff = staffQuery.data ?? [];
-  const reports = reportQuery.data ?? [];
-  const openReports = stats.openReports ?? 0;
-  const progressReports = stats.progressReports ?? 0;
-  const closeReports = stats.closeReports ?? 0;
-  const totalReports = reports.length;
+  const staff = staffQuery.data && staffQuery.data.length > 0 ? staffQuery.data : dashboardUsers.filter(
+    (user) => user.role === 'staff' && user.departmentId === department.departmentId && user.isActive,
+  );
+  const reports = reportQuery.data && reportQuery.data.length > 0 ? reportQuery.data : dashboardReports.filter(
+    (report) => report.departmentId === department.departmentId,
+  );
+  const handledByStaffCount = reports.filter((report) => report.assignedStaffId != null).length;
+  const staffHandlingSummary = useMemo(
+    () =>
+      staff
+        .map((member) => {
+          const handledReports = reports.filter((report) => report.assignedStaffId === member.userId);
+          const handledCount = handledReports.length;
+          return {
+            staff: member,
+            handledCount,
+            handledReports,
+            averageRating: getAverageRating(handledReports),
+            finishedCount: handledReports.filter((report) => report.status === 'close').length,
+          };
+        })
+        .filter((item) => item.handledCount > 0)
+        .sort((a, b) => b.handledCount - a.handledCount || a.staff.fullName.localeCompare(b.staff.fullName)),
+    [reports, staff],
+  );
+  const fallbackStats = {
+    totalStaff: staff.length,
+    totalReports: reports.length,
+    openReports: reports.filter((report) => report.status === 'open').length,
+    progressReports: reports.filter((report) => report.status === 'progress').length,
+    closeReports: reports.filter((report) => report.status === 'close').length,
+  };
+  const derivedStats = {
+    totalStaff: stats.totalStaff ?? fallbackStats.totalStaff,
+    totalReports: stats.totalReports ?? fallbackStats.totalReports,
+    openReports: stats.openReports ?? fallbackStats.openReports,
+    progressReports: stats.progressReports ?? fallbackStats.progressReports,
+    closeReports: stats.closeReports ?? fallbackStats.closeReports,
+  };
+  const openReports = derivedStats.openReports;
+  const progressReports = derivedStats.progressReports;
+  const closeReports = derivedStats.closeReports;
+  const totalReports = derivedStats.totalReports;
   const averageResolution = getAverageResolution(reports);
+  const averageRating = getAverageRating(reports);
   const maxFlow = Math.max(openReports, progressReports, closeReports, 1);
+  const refetchAll = async () => {
+    await Promise.all([statsQuery.refetch(), staffQuery.refetch(), reportQuery.refetch()]);
+  };
 
   return (
     <Screen
       title={department.departmentName}
       subtitle={department.description ?? undefined}
       left={<HeaderBackButton onPress={() => navigation.goBack()} />}
+      refreshing={statsQuery.isFetching || staffQuery.isFetching || reportQuery.isFetching}
+      onRefresh={() => void refetchAll()}
     >
       <SectionCard tone="soft">
         <View style={styles.heroHeader}>
           <View style={[styles.heroIconWrap, { backgroundColor: theme.soft }]}>
-            <Text selectable style={[styles.heroIcon, { color: theme.color }]}>
-              {getDepartmentGlyph(department.departmentCode)}
-            </Text>
+            <MaterialCommunityIcons name={iconName as any} size={36} color={theme.color} />
           </View>
           <View style={styles.heroText}>
             <Text selectable style={styles.heroLabel}>
@@ -68,6 +117,7 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
 
         <View style={styles.quickStats}>
           <QuickStat label="Staff aktif" value={stats.totalStaff ?? staff.length} accent={theme.color} />
+          <QuickStat label="Diambil staff" value={handledByStaffCount} accent="#7C3AED" />
           <QuickStat label="Open" value={openReports} accent="#DC2626" />
           <QuickStat label="Progress" value={progressReports} accent="#0369A1" />
           <QuickStat label="Close" value={closeReports} accent="#15803D" />
@@ -94,10 +144,10 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
           </View>
           <View style={styles.chartFooterItem}>
             <Text selectable style={styles.chartFooterLabel}>
-              Rata-rata penyelesaian
+              Rating rata-rata
             </Text>
             <Text selectable style={styles.chartFooterValue}>
-              {averageResolution ?? '-'}
+              {averageRating != null ? `${averageRating}/5` : '-'}
             </Text>
           </View>
         </View>
@@ -108,7 +158,7 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
           Statistik detail
         </Text>
         <View style={styles.detailGrid}>
-          <DetailRow label="Total staff aktif" value={stats.totalStaff ?? staff.length} />
+          <DetailRow label="Total staff aktif" value={derivedStats.totalStaff} />
           <DetailRow label="Total alert masuk" value={totalReports} />
           <DetailRow label="Alert open" value={openReports} />
           <DetailRow label="Alert progress" value={progressReports} />
@@ -117,7 +167,7 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
       </SectionCard>
 
       <View style={styles.dualMetrics}>
-        <PremiumKpi label="Staff aktif" value={stats.totalStaff ?? staff.length} tone={theme.soft} color={theme.color} />
+        <PremiumKpi label="Staff aktif" value={derivedStats.totalStaff} tone={theme.soft} color={theme.color} />
         <PremiumKpi label="Rata-rata penyelesaian" value={averageResolution ?? '-'} tone="#F8FAFC" color="#0F2C57" />
       </View>
 
@@ -131,6 +181,128 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
           </View>
         ) : (
           <EmptyState title="Belum ada staff" description="Tambahkan staff untuk departemen ini." />
+        )}
+      </SectionCard>
+
+      <SectionCard tone="soft">
+        <Text style={styles.sectionTitle}>Alert per Staff</Text>
+        <Text selectable style={styles.sectionSubtitle}>
+          Lihat siapa yang paling banyak menangani alert di departemen ini.
+        </Text>
+        {staffHandlingSummary.length ? (
+          <View style={styles.staffSummaryList}>
+            {staffHandlingSummary.map(({ staff: member, handledCount, handledReports, averageRating, finishedCount }) => {
+              const isSelected = selectedStaffId === member.userId;
+              const isHistoryExpanded = expandedHistoryStaffId === member.userId;
+              const historyItems = isHistoryExpanded ? handledReports : handledReports.slice(0, 4);
+              return (
+                <View key={member.userId} style={styles.staffSummaryBlock}>
+                  <Pressable
+                    onPress={() => setSelectedStaffId((current) => (current === member.userId ? null : member.userId))}
+                    style={({ pressed }) => [styles.staffSummaryRow, pressed && styles.staffSummaryPressed]}
+                  >
+                    <View style={styles.staffSummaryLeft}>
+                      <View style={[styles.staffSummaryAvatar, { backgroundColor: theme.soft }]}>
+                        <Text style={[styles.staffSummaryAvatarText, { color: theme.color }]}>
+                          {member.fullName.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.staffSummaryBody}>
+                        <Text selectable style={styles.staffSummaryName} numberOfLines={1}>
+                          {member.fullName}
+                        </Text>
+                        <Text selectable style={styles.staffSummaryMeta} numberOfLines={1}>
+                          {member.username}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.staffSummaryBadge, { backgroundColor: `${theme.color}12` }]}>
+                      <Text selectable style={[styles.staffSummaryBadgeText, { color: theme.color }]}>
+                        {handledCount} alert
+                      </Text>
+                    </View>
+                  </Pressable>
+                  {isSelected ? (
+                    <View style={styles.staffDetailCard}>
+                      <View style={styles.staffDetailHeader}>
+                        <View>
+                          <Text selectable style={styles.staffDetailTitle}>
+                            Detail staff
+                          </Text>
+                          <Text selectable style={styles.staffDetailSubtitle}>
+                            {member.fullName}
+                          </Text>
+                        </View>
+                        <View style={[styles.staffDetailRatingPill, { backgroundColor: `${theme.color}12` }]}>
+                          <Text selectable style={[styles.staffDetailRatingText, { color: theme.color }]}>
+                            {averageRating != null ? `${averageRating}/5` : '-'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.staffDetailMetrics}>
+                        <MiniMetric
+                          label="Alert dikerjakan"
+                          value={handledCount}
+                          accent={theme.color}
+                          onPress={() => setExpandedHistoryStaffId((current) => (current === member.userId ? null : member.userId))}
+                        />
+                        <MiniMetric
+                          label="Alert selesai"
+                          value={finishedCount}
+                          accent="#15803D"
+                        />
+                      </View>
+                      <Text selectable style={styles.staffDetailHint}>
+                        Tekan kartu alert dikerjakan untuk melihat semua riwayat staff ini.
+                      </Text>
+
+                      <View style={styles.staffDetailSectionHeader}>
+                        <Text selectable style={styles.staffDetailSectionTitle}>
+                          {isHistoryExpanded ? 'Semua riwayat' : 'Riwayat terbaru'}
+                        </Text>
+                        <Pressable
+                          onPress={() => setExpandedHistoryStaffId((current) => (current === member.userId ? null : member.userId))}
+                          style={({ pressed }) => [styles.staffDetailToggle, pressed && styles.staffDetailTogglePressed]}
+                        >
+                          <Text style={styles.staffDetailToggleText}>
+                            {isHistoryExpanded ? 'Tutup' : 'Lihat semua'}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <View style={styles.staffHistoryList}>
+                        {historyItems.map((report) => (
+                          <View key={report.reportId} style={styles.staffHistoryRow}>
+                            <View style={styles.staffHistoryLeft}>
+                              <View style={[styles.staffHistoryDot, { backgroundColor: theme.color }]} />
+                              <View style={styles.staffHistoryBody}>
+                                <Text selectable style={styles.staffHistoryTitle}>
+                                  {report.description}
+                                </Text>
+                                <Text selectable style={styles.staffHistoryMeta}>
+                                  {report.status.toUpperCase()} • {report.createdAt ? new Date(report.createdAt).toLocaleDateString('id-ID') : '-'}
+                                </Text>
+                              </View>
+                            </View>
+                            <Text selectable style={styles.staffHistoryScore}>
+                              {report.requesterRatingScore ?? report.ratingScore ?? report.staffRatingScore ?? '-'}
+                            </Text>
+                          </View>
+                        ))}
+                        {!historyItems.length ? (
+                          <Text selectable style={styles.staffHistoryEmpty}>
+                            Belum ada riwayat untuk staff ini.
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <EmptyState title="Belum ada alert yang diambil" description="Alert yang sudah diambil staff akan tampil di sini." />
         )}
       </SectionCard>
 
@@ -149,7 +321,6 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
     </Screen>
   );
 }
-
 function QuickStat({
   label,
   value,
@@ -249,10 +420,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 72,
   },
-  heroIcon: {
-    fontSize: 32,
-    fontWeight: '900',
-  },
   heroText: {
     flex: 1,
     gap: 4,
@@ -302,6 +469,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.2,
+  },
+  sectionSubtitle: {
+    color: '#64748B',
+    fontSize: 13.5,
+    fontWeight: '600',
+    lineHeight: 19,
+    marginBottom: 10,
+    marginTop: 4,
   },
   chartStack: {
     gap: 14,
@@ -404,4 +579,254 @@ const styles = StyleSheet.create({
   list: {
     gap: 10,
   },
+  staffSummaryList: {
+    gap: 10,
+  },
+  staffSummaryRow: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE6F5',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: 14,
+  },
+  staffSummaryPressed: {
+    opacity: 0.95,
+    transform: [{ scale: 0.995 }],
+  },
+  staffSummaryLeft: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minWidth: 0,
+  },
+  staffSummaryAvatar: {
+    alignItems: 'center',
+    borderRadius: 16,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  staffSummaryAvatarText: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  staffSummaryBody: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  staffSummaryName: {
+    color: '#101828',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  staffSummaryMeta: {
+    color: '#667085',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  staffSummaryBadge: {
+    borderRadius: 999,
+    minWidth: 74,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  staffSummaryBadgeText: {
+    fontSize: 12.5,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  staffSummaryBlock: {
+    gap: 10,
+  },
+  staffDetailCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE6F5',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 12,
+    padding: 14,
+  },
+  staffDetailHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  staffDetailTitle: {
+    color: '#0F2C57',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  staffDetailSubtitle: {
+    color: '#667085',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  staffDetailRatingPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  staffDetailRatingText: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  staffDetailMetrics: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  staffDetailHint: {
+    color: '#667085',
+    fontSize: 11.5,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+  staffDetailSectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  staffDetailToggle: {
+    alignItems: 'center',
+    backgroundColor: '#EFF4FF',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  staffDetailTogglePressed: {
+    opacity: 0.86,
+  },
+  staffDetailToggleText: {
+    color: '#1D4ED8',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  miniMetric: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#DCE6F5',
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    gap: 4,
+    padding: 12,
+  },
+  miniMetricPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.995 }],
+  },
+  miniMetricValue: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  miniMetricLabel: {
+    color: '#667085',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  staffDetailSectionTitle: {
+    color: '#0F2C57',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  staffHistoryList: {
+    gap: 8,
+  },
+  staffHistoryRow: {
+    alignItems: 'center',
+    backgroundColor: '#F8FBFF',
+    borderRadius: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  staffHistoryLeft: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minWidth: 0,
+  },
+  staffHistoryDot: {
+    borderRadius: 999,
+    height: 10,
+    width: 10,
+  },
+  staffHistoryBody: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  staffHistoryTitle: {
+    color: '#101828',
+    fontSize: 13.5,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  staffHistoryMeta: {
+    color: '#667085',
+    fontSize: 11.5,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+  staffHistoryEmpty: {
+    color: '#667085',
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 4,
+    paddingTop: 2,
+  },
+  staffHistoryScore: {
+    color: '#1D4ED8',
+    fontSize: 12.5,
+    fontWeight: '900',
+  },
 });
+
+function MiniMetric({
+  label,
+  value,
+  accent,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  accent: string;
+  onPress?: () => void;
+}) {
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [styles.miniMetric, pressed && styles.miniMetricPressed]}
+      >
+        <Text selectable style={[styles.miniMetricValue, { color: accent }]}>
+          {value}
+        </Text>
+        <Text selectable style={styles.miniMetricLabel}>
+          {label}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={styles.miniMetric}>
+      <Text selectable style={[styles.miniMetricValue, { color: accent }]}>
+        {value}
+      </Text>
+      <Text selectable style={styles.miniMetricLabel}>
+        {label}
+      </Text>
+    </View>
+  );
+}

@@ -32,6 +32,7 @@ export type PendingReportSubmission = {
   payload: {
     departmentId: number;
     sourceDepartmentId?: number | null;
+    clientSubmissionId: string;
     description: string;
     incidentLocationText: string;
     incidentLatitude?: number | null;
@@ -175,14 +176,16 @@ async function resolveAttachment(
 
 async function queueSubmission(
   input: ReportSubmissionInput,
+  clientSubmissionId: string,
   attachment?: PendingReportAttachment | null,
 ) {
   const submission: PendingReportSubmission = {
-    id: createId(),
+    id: clientSubmissionId,
     createdAt: new Date().toISOString(),
     payload: {
       departmentId: input.departmentId,
       sourceDepartmentId: input.sourceDepartmentId ?? null,
+      clientSubmissionId,
       description: input.description,
       incidentLocationText: input.incidentLocationText,
       incidentLatitude: input.incidentLatitude ?? null,
@@ -222,12 +225,13 @@ async function prepareQueueAttachment(input: ReportSubmissionInput['attachment']
 }
 
 export async function submitAlertWithOfflineFallback(input: ReportSubmissionInput): Promise<SubmitAlertResult> {
+  const clientSubmissionId = createId();
   const networkState = await Network.getNetworkStateAsync();
   const online = isNetworkAvailable(networkState);
 
   if (!online) {
     const queuedAttachment = await prepareQueueAttachment(input.attachment);
-    const submission = await queueSubmission(input, queuedAttachment);
+    const submission = await queueSubmission(input, clientSubmissionId, queuedAttachment);
     return { kind: 'queued', submission };
   }
 
@@ -238,6 +242,7 @@ export async function submitAlertWithOfflineFallback(input: ReportSubmissionInpu
     const report = await createReport({
       departmentId: input.departmentId,
       sourceDepartmentId: input.sourceDepartmentId ?? undefined,
+      clientSubmissionId,
       description: input.description,
       incidentLocationText: input.incidentLocationText,
       incidentLatitude: input.incidentLatitude ?? null,
@@ -271,7 +276,7 @@ export async function submitAlertWithOfflineFallback(input: ReportSubmissionInpu
         }
       : await prepareQueueAttachment(input.attachment);
 
-    const submission = await queueSubmission(input, queuedAttachment);
+    const submission = await queueSubmission(input, clientSubmissionId, queuedAttachment);
     return { kind: 'queued', submission };
   }
 }
@@ -332,6 +337,7 @@ export async function syncQueuedReportSubmissions() {
         await createReport({
           departmentId: item.payload.departmentId,
           sourceDepartmentId: item.payload.sourceDepartmentId ?? undefined,
+          clientSubmissionId: item.payload.clientSubmissionId ?? item.id,
           description: item.payload.description,
           incidentLocationText: item.payload.incidentLocationText,
           incidentLatitude: item.payload.incidentLatitude ?? null,

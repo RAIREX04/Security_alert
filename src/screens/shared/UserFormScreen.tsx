@@ -4,12 +4,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppNoticeModal } from '../../components/AppNoticeModal';
 import { AppTextInput } from '../../components/AppTextInput';
 import { HeaderBackButton } from '../../components/HeaderBackButton';
+import { PhotoSourceSheet } from '../../components/PhotoSourceSheet';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { ProfilePhotoInput } from '../../components/ProfilePhotoInput';
 import { Screen } from '../../components/Screen';
 import { SectionCard } from '../../components/SectionCard';
 import { createUser, getUserFormOptions, updateUser } from '../../services/user-service';
 import type { User } from '../../types/models';
 import { getApiErrorMessage } from '../../config/api';
+import { capturePhotoAsync, pickImageAsync } from '../../services/device-service';
+import { uploadProfilePhoto } from '../../services/upload-service';
+import { normalizeMediaUrl } from '../../utils/media';
 
 type Props = {
   navigation: { goBack: () => void };
@@ -31,11 +36,20 @@ export function UserFormScreen({ navigation, route, defaultRole = 'user' }: Prop
   const [phoneNumber, setPhoneNumber] = useState(existing?.phoneNumber ?? '');
   const [pin, setPin] = useState('');
   const [departmentId, setDepartmentId] = useState<number | null>(existing?.departmentId ?? null);
+  const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(normalizeMediaUrl(existing?.photoUrl));
+  const [photoAsset, setPhotoAsset] = useState<{
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null>(null);
+  const [isPhotoSheetVisible, setIsPhotoSheetVisible] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string; tone?: 'success' | 'info' | 'warning' } | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      existing
+    mutationFn: async () => {
+      const uploadedPhoto = photoAsset ? await uploadProfilePhoto(photoAsset) : null;
+      return existing
         ? updateUser(existing.userId, {
             fullName,
             username,
@@ -43,6 +57,7 @@ export function UserFormScreen({ navigation, route, defaultRole = 'user' }: Prop
             phoneNumber,
             departmentId,
             ...(pin ? { pin } : {}),
+            ...(uploadedPhoto ? { photoUrl: uploadedPhoto.fileUrl } : {}),
           })
         : createUser({
             fullName,
@@ -50,10 +65,12 @@ export function UserFormScreen({ navigation, route, defaultRole = 'user' }: Prop
             email,
             pin,
             phoneNumber,
+            ...(uploadedPhoto ? { photoUrl: uploadedPhoto.fileUrl } : {}),
             roleName: role,
             departmentId: role === 'staff' ? departmentId : null,
             approvalStatus: 'approved',
-          }),
+          });
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['users'] });
       setNotice({
@@ -70,13 +87,40 @@ export function UserFormScreen({ navigation, route, defaultRole = 'user' }: Prop
       }),
   });
 
+  const handlePhotoPicked = (asset: {
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null) => {
+    if (!asset) return;
+    setPhotoAsset(asset);
+    setPhotoPreviewUri(asset.uri);
+  };
+
+  const handlePickCamera = async () => {
+    try {
+      handlePhotoPicked(await capturePhotoAsync());
+    } catch (error) {
+      setNotice({ title: 'Foto gagal', message: error instanceof Error ? error.message : 'Coba lagi.', tone: 'warning' });
+    }
+  };
+
+  const handlePickGallery = async () => {
+    try {
+      handlePhotoPicked(await pickImageAsync());
+    } catch (error) {
+      setNotice({ title: 'Foto gagal', message: error instanceof Error ? error.message : 'Coba lagi.', tone: 'warning' });
+    }
+  };
+
   const submit = () => {
     if (!fullName.trim() || !username.trim() || (!existing && !pin)) {
-      setNotice({ title: 'Validasi', message: 'Nama, username, dan PIN wajib diisi.', tone: 'warning' });
+      setNotice({ title: 'Validasi', message: 'Nama, username, dan password wajib diisi.', tone: 'warning' });
       return;
     }
-    if (pin && !/^\d{6}$/.test(pin)) {
-      setNotice({ title: 'Validasi', message: 'PIN wajib tepat 6 angka.', tone: 'warning' });
+    if (pin && pin.trim().length < 6) {
+      setNotice({ title: 'Validasi', message: 'Password minimal 6 karakter.', tone: 'warning' });
       return;
     }
     if (role === 'staff' && !departmentId) {
@@ -110,12 +154,18 @@ export function UserFormScreen({ navigation, route, defaultRole = 'user' }: Prop
         <AppTextInput label="Email (opsional)" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
         <AppTextInput label="Nomor telepon" value={phoneNumber ?? ''} onChangeText={setPhoneNumber} keyboardType="phone-pad" />
         <AppTextInput
-          label={existing ? 'PIN baru 6 angka (opsional)' : 'PIN 6 angka'}
+          label={existing ? 'Password baru (opsional)' : 'Password'}
           value={pin}
           onChangeText={setPin}
-          keyboardType="number-pad"
-          maxLength={6}
           secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
+        />
+        <ProfilePhotoInput
+          name={fullName}
+          photoUri={photoPreviewUri}
+          fileName={photoAsset?.fileName}
+          onPress={() => setIsPhotoSheetVisible(true)}
         />
 
         {(role === 'staff' || existing?.role === 'staff') ? (
@@ -144,6 +194,14 @@ export function UserFormScreen({ navigation, route, defaultRole = 'user' }: Prop
           disabled={mutation.isPending}
         />
       </View>
+      <PhotoSourceSheet
+        visible={isPhotoSheetVisible}
+        onClose={() => setIsPhotoSheetVisible(false)}
+        onCamera={() => void handlePickCamera()}
+        onGallery={() => void handlePickGallery()}
+        title="Pilih foto profil"
+        description="Foto profil opsional untuk akun yang dibuat admin."
+      />
       <AppNoticeModal
         visible={Boolean(notice)}
         title={notice?.title ?? ''}

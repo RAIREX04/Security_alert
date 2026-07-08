@@ -6,8 +6,9 @@ const { asyncHandler } = require('../utils/async-handler');
 
 const router = express.Router();
 
-router.use(authenticate);
 router.post('/profile-photo', upload.single('file'), asyncHandler(uploadController.uploadProfilePhoto));
+
+router.use(authenticate);
 router.post('/report-photo', upload.single('file'), asyncHandler(uploadController.uploadReportPhoto));
 router.post('/report-completion-photo', upload.single('file'), asyncHandler(uploadController.uploadReportCompletionPhoto));
 

@@ -6,9 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableWithoutFeedback,
   View,
-  Keyboard,
   useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,54 +29,64 @@ export function AuthScreenShell({ title, subtitle, compact = false, footer, chil
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       style={styles.flex}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ImageBackground
-          source={require('../../assets/login-background-pag.png')}
-          resizeMode="cover"
-          style={styles.flex}
-        >
-          <View style={styles.overlay} />
+      <ImageBackground
+        source={require('../../assets/login-background-new.png')}
+        resizeMode="cover"
+        style={styles.flex}
+      >
+        <View pointerEvents="none" style={styles.overlay} />
+        <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
           <LinearGradient
-            colors={['rgba(248,250,252,0.40)', 'rgba(248,250,252,0.82)', 'rgba(246,248,251,0.98)']}
-            style={StyleSheet.absoluteFill}
+            colors={['rgba(4,22,74,0.86)', 'rgba(4,22,74,0.54)', 'rgba(4,22,74,0.20)', 'rgba(4,22,74,0.03)']}
+            locations={[0, 0.36, 0.72, 1]}
+            style={StyleSheet.absoluteFillObject}
           />
+        </View>
+        <View pointerEvents="none" style={styles.decorWrap}>
+          <View style={styles.decorTopLeft} />
+          <View style={styles.decorBottomLeft} />
+          <View style={styles.decorBottomRight} />
+        </View>
 
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            keyboardDismissMode="on-drag"
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[
-              styles.scrollContent,
-              { minHeight: height },
-              compact && styles.scrollContentCompact,
-            ]}
-          >
-            <View style={[styles.heroWrap, compact && styles.heroWrapCompact]}>
-              <PertaminaLogo size={compact ? 'md' : 'lg'} align="end" />
-              <Text selectable style={[styles.heroTitle, compact && styles.heroTitleCompact]}>
-                {title}
-              </Text>
-              <Text selectable style={[styles.heroSubtitle, compact && styles.heroSubtitleCompact]}>
-                {subtitle}
-              </Text>
-              {!compact ? (
-                <View style={styles.heroPills}>
-                  <View style={styles.heroPill}>
-                    <Text style={styles.heroPillText}>Keamanan tanggap</Text>
-                  </View>
-                  <View style={styles.heroPill}>
-                    <Text style={styles.heroPillText}>Respon cepat</Text>
-                  </View>
-                </View>
-              ) : null}
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.scrollContent,
+            { minHeight: height },
+            compact && styles.scrollContentCompact,
+          ]}
+        >
+          <View style={[styles.heroWrap, compact && styles.heroWrapCompact]}>
+            <PertaminaLogo size={compact ? 'sm' : 'md'} framed={false} />
+            <Text selectable style={[styles.heroTitle, compact && styles.heroTitleCompact]}>
+              {title}
+            </Text>
+            <View style={styles.accentRow}>
+              <View style={styles.accentLine} />
+              <View style={styles.accentDot} />
             </View>
+            <Text selectable style={[styles.heroSubtitle, compact && styles.heroSubtitleCompact]}>
+              {subtitle}
+            </Text>
+            {!compact ? (
+              <View style={styles.heroPills}>
+                <View style={styles.heroPill}>
+                  <Text style={styles.heroPillText}>Keamanan tanggap</Text>
+                </View>
+                <View style={styles.heroPill}>
+                  <Text style={styles.heroPillText}>Respon cepat</Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
 
-            <View style={styles.card}>{children}</View>
+          <View style={styles.card}>{children}</View>
 
-            {footer ? <View style={styles.footerWrap}>{footer}</View> : null}
-          </ScrollView>
-        </ImageBackground>
-      </TouchableWithoutFeedback>
+          {footer ? <View style={styles.footerWrap}>{footer}</View> : null}
+        </ScrollView>
+      </ImageBackground>
     </KeyboardAvoidingView>
   );
 }
@@ -90,46 +98,96 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,23,42,0.08)',
+    backgroundColor: 'rgba(2,12,38,0.10)',
+  },
+  decorWrap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  decorTopLeft: {
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    borderRadius: 190,
+    height: 260,
+    left: -142,
+    position: 'absolute',
+    top: -52,
+    width: 260,
+  },
+  decorBottomLeft: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 260,
+    bottom: -150,
+    height: 340,
+    left: -210,
+    position: 'absolute',
+    width: 340,
+  },
+  decorBottomRight: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 240,
+    bottom: -128,
+    height: 320,
+    position: 'absolute',
+    right: -184,
+    width: 320,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: ecrTheme.spacing.screenX,
-    paddingVertical: ecrTheme.spacing.xl,
+    paddingBottom: ecrTheme.spacing.xl,
+    paddingTop: 34,
   },
   scrollContentCompact: {
     justifyContent: 'flex-start',
-    paddingTop: 24,
+    paddingTop: 28,
   },
   heroWrap: {
-    marginBottom: 16,
-    paddingRight: 86,
+    marginBottom: 18,
+    paddingRight: 46,
   },
   heroWrapCompact: {
-    marginBottom: 10,
+    marginBottom: 14,
   },
   heroTitle: {
-    color: ecrTheme.colors.deepNavy,
-    fontSize: 29,
+    color: '#FFFFFF',
+    fontSize: 34,
     fontWeight: '900',
-    lineHeight: 34,
-    marginTop: 22,
+    letterSpacing: -0.7,
+    lineHeight: 39,
+    marginTop: 24,
   },
   heroTitleCompact: {
-    fontSize: 25,
-    lineHeight: 30,
-    marginTop: 14,
+    fontSize: 30,
+    lineHeight: 35,
+    marginTop: 18,
   },
   heroSubtitle: {
-    color: ecrTheme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 19,
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 22,
     marginTop: 12,
   },
   heroSubtitleCompact: {
-    marginTop: 10,
+    marginTop: 12,
+  },
+  accentRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 15,
+  },
+  accentLine: {
+    backgroundColor: '#EA1D38',
+    borderRadius: 999,
+    height: 5,
+    width: 70,
+  },
+  accentDot: {
+    backgroundColor: 'rgba(255,255,255,0.36)',
+    borderRadius: 999,
+    height: 5,
+    width: 18,
   },
   heroPills: {
     flexDirection: 'row',
@@ -151,12 +209,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.98)',
-    borderColor: ecrTheme.colors.border,
-    borderRadius: ecrTheme.radii.xl,
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderColor: 'rgba(226,232,240,0.92)',
+    borderRadius: 34,
     borderWidth: 1,
     ...ecrTheme.shadows.medium,
-    padding: ecrTheme.spacing.lg,
+    padding: 24,
   },
   footerWrap: {
     marginTop: 14,

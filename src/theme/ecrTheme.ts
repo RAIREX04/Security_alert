@@ -67,7 +67,7 @@ export const ecrTheme = {
     lg: 18,
     xl: 24,
     screenX: 18,
-    screenBottom: 148,
+    screenBottom: 184,
   },
   status: {
     open: { bg: '#FFF1F2', border: '#FDA4AF', text: '#BE123C' },

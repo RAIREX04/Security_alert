@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, setAccessToken } from '../config/api';
+import { refreshToken as refreshSessionRequest } from '../services/auth-service';
+import { cacheOfflineAuthSession } from '../services/local-auth-service';
 import type { AuthSession, User } from '../types/models';
 
 type AuthContextValue = {
@@ -8,7 +10,8 @@ type AuthContextValue = {
   accessToken: string | null;
   refreshToken: string | null;
   isHydrating: boolean;
-  signIn: (session: AuthSession) => Promise<void>;
+  signIn: (session: AuthSession, pin?: string | null) => Promise<void>;
+  refreshCurrentSession: () => Promise<AuthSession>;
   signOut: () => Promise<void>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 };
@@ -69,8 +72,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(null);
   };
 
-  const signIn = async (session: AuthSession) => {
+  const signIn = async (session: AuthSession, pin: string | null = null) => {
     await persistSession(session);
+
+    if (pin) {
+      await cacheOfflineAuthSession(session, pin).catch(() => {});
+    }
+  };
+
+  const refreshCurrentSession = async () => {
+    if (!refreshToken) {
+      throw new Error('Refresh token tidak tersedia.');
+    }
+
+    const session = await refreshSessionRequest(refreshToken);
+    await persistSession(session);
+    return session;
   };
 
   const signOut = async () => {
@@ -93,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshToken,
         isHydrating,
         signIn,
+        refreshCurrentSession,
         signOut,
         setUser,
       }}

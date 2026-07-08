@@ -26,6 +26,7 @@ function mapReport(report) {
     reportId: report.reportId,
     departmentId: report.departmentId,
     sourceDepartmentId: report.sourceDepartmentId,
+    clientSubmissionId: report.clientSubmissionId,
     reporterUserId: report.reporterUserId,
     assignedStaffId: report.assignedStaffId,
     description: report.description,
@@ -176,6 +177,23 @@ async function getReport(currentUser, id) {
 
 async function createReport(currentUser, payload) {
   const currentUserId = getActorId(currentUser);
+  if (payload.clientSubmissionId) {
+    const existing = await Report.findOne({
+      where: { clientSubmissionId: payload.clientSubmissionId },
+      include: [
+        { model: Department, as: 'department' },
+        { model: Department, as: 'sourceDepartment' },
+        { model: User, as: 'reporter' },
+        { model: User, as: 'assignedStaff' },
+        { model: ReportAttachment, as: 'attachments' },
+      ],
+    });
+
+    if (existing) {
+      return mapReport(existing);
+    }
+  }
+
   const department = await Department.findByPk(payload.departmentId);
   if (!department) {
     throw Object.assign(new Error('Departemen tujuan tidak ditemukan'), {
@@ -185,6 +203,7 @@ async function createReport(currentUser, payload) {
 
   const report = await Report.create({
     departmentId: department.departmentId,
+    clientSubmissionId: payload.clientSubmissionId || null,
     reporterUserId: currentUserId,
     sourceDepartmentId: payload.sourceDepartmentId || null,
     description: payload.description,

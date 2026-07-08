@@ -51,6 +51,7 @@ async function ensureReportReviewColumns() {
     ['staff_rating_score', 'INT NULL'],
     ['staff_rating_comment', 'NVARCHAR(MAX) NULL'],
     ['staff_rated_at', 'DATETIME2(0) NULL'],
+    ['client_submission_id', 'NVARCHAR(100) NULL'],
     ['arrived_location_text', 'NVARCHAR(255) NULL'],
     ['completed_location_text', 'NVARCHAR(255) NULL'],
   ];

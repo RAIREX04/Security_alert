@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, NativeModules, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +10,10 @@ import { STAFF_ALERT_CHANNEL_ID, STAFF_ALERT_SOUND } from '../constants/notifica
 const ALERT_SOUND = require('../../assets/sounds/alarm_sound_effect.mp3');
 
 export function StaffAlertMonitor() {
+  if (Platform.OS === 'android' && NativeModules.AlarmMonitor) {
+    return null;
+  }
+
   const { user } = useAuth();
   const isStaff = user?.role === 'staff' && user?.approvalStatus === 'approved' && user.isActive;
   const departmentId = user?.departmentId ?? null;
@@ -123,26 +127,27 @@ export function StaffAlertMonitor() {
     const newReports = openReports.filter((report) => !previousIds.has(report.reportId));
 
     if (newReports.length > 0) {
-      void Promise.all(
-        newReports.map((report) =>
-          Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Alert baru masuk',
-              body: `${report.department ?? 'Departemen Anda'}: ${report.incidentLocationText}`,
-              sound: STAFF_ALERT_SOUND,
-              data: {
-                reportId: report.reportId,
-                departmentId: report.departmentId,
-              },
-            },
-            trigger: {
-              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-              seconds: 1,
-              channelId: STAFF_ALERT_CHANNEL_ID,
-            },
-          }),
-        ),
-      ).catch(() => {});
+      const firstReport = newReports[0];
+      void Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Alert baru masuk',
+          body:
+            newReports.length === 1
+              ? `${firstReport.department ?? 'Departemen Anda'}: ${firstReport.incidentLocationText}`
+              : `Ada ${newReports.length} alert baru untuk departemen Anda.`,
+          sound: STAFF_ALERT_SOUND,
+          data: {
+            reportId: firstReport.reportId,
+            departmentId: firstReport.departmentId,
+            reportCount: newReports.length,
+          },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 1,
+          channelId: STAFF_ALERT_CHANNEL_ID,
+        },
+      }).catch(() => {});
     }
 
     previousAlertIds.current = currentIds;

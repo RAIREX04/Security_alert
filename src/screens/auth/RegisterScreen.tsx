@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AuthField } from '../../components/AuthField';
 import { AppNoticeModal } from '../../components/AppNoticeModal';
 import { AuthScreenShell } from '../../components/AuthScreenShell';
+import { PhotoSourceSheet } from '../../components/PhotoSourceSheet';
+import { ProfilePhotoInput } from '../../components/ProfilePhotoInput';
+import { capturePhotoAsync, pickImageAsync } from '../../services/device-service';
 import { registerUser } from '../../services/auth-service';
+import { uploadRegistrationProfilePhoto } from '../../services/upload-service';
 import type { AuthStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
@@ -16,27 +20,65 @@ export function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [photoAsset, setPhotoAsset] = useState<{
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null>(null);
+  const [isPhotoSheetVisible, setIsPhotoSheetVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string; tone?: 'success' | 'info' | 'warning' } | null>(null);
 
+  const handlePhotoPicked = (asset: {
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null) => {
+    if (asset) setPhotoAsset(asset);
+  };
+
+  const handlePickCamera = async () => {
+    try {
+      handlePhotoPicked(await capturePhotoAsync());
+    } catch (error) {
+      setNotice({ title: 'Foto gagal', message: error instanceof Error ? error.message : 'Coba lagi.', tone: 'warning' });
+    }
+  };
+
+  const handlePickGallery = async () => {
+    try {
+      handlePhotoPicked(await pickImageAsync());
+    } catch (error) {
+      setNotice({ title: 'Foto gagal', message: error instanceof Error ? error.message : 'Coba lagi.', tone: 'warning' });
+    }
+  };
+
   const handleSubmit = async () => {
     if (!fullName || !username || !pin) {
-      setNotice({ title: 'Validasi', message: 'Nama, username, dan PIN wajib diisi.', tone: 'warning' });
+      setNotice({ title: 'Validasi', message: 'Nama, username, dan password wajib diisi.', tone: 'warning' });
       return;
     }
-    if (!/^\d{6}$/.test(pin)) {
-      setNotice({ title: 'Validasi', message: 'PIN wajib tepat 6 angka.', tone: 'warning' });
+    if (pin.trim().length < 6) {
+      setNotice({ title: 'Validasi', message: 'Password minimal 6 karakter.', tone: 'warning' });
+      return;
+    }
+    if (!photoAsset) {
+      setNotice({ title: 'Validasi', message: 'Foto profil wajib ditambahkan.', tone: 'warning' });
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const uploadedPhoto = await uploadRegistrationProfilePhoto(photoAsset);
       await registerUser({
         fullName,
         username,
         email,
         pin,
         phoneNumber,
+        photoUrl: uploadedPhoto.fileUrl,
       });
       setNotice({ title: 'Berhasil', message: 'Akun user berhasil dibuat. Silakan login.', tone: 'success' });
     } catch (error) {
@@ -98,13 +140,20 @@ export function RegisterScreen({ navigation }: Props) {
           keyboardType="phone-pad"
         />
         <AuthField
-          label="PIN 6 angka"
+          label="Password"
           icon="P"
           value={pin}
           onChangeText={setPin}
-          keyboardType="number-pad"
-          maxLength={6}
           secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
+        />
+        <ProfilePhotoInput
+          name={fullName}
+          photoUri={photoAsset?.uri}
+          fileName={photoAsset?.fileName}
+          required
+          onPress={() => setIsPhotoSheetVisible(true)}
         />
 
         <Pressable
@@ -141,6 +190,14 @@ export function RegisterScreen({ navigation }: Props) {
           setNotice(null);
           if (shouldGoBack) navigation.goBack();
         }}
+      />
+      <PhotoSourceSheet
+        visible={isPhotoSheetVisible}
+        onClose={() => setIsPhotoSheetVisible(false)}
+        onCamera={() => void handlePickCamera()}
+        onGallery={() => void handlePickGallery()}
+        title="Pilih foto profil"
+        description="Foto profil wajib untuk registrasi akun."
       />
     </AuthScreenShell>
   );

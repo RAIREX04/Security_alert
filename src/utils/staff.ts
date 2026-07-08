@@ -64,6 +64,18 @@ export function getDepartmentByName(name?: string | null) {
   );
 }
 
+export function getDepartmentForReport(report: Pick<Report, 'departmentId' | 'department'>) {
+  if (report.department) {
+    const normalized = normalizeDepartmentName(report.department);
+    const byName = departmentFallbacks.find(
+      (item) => item.departmentCode === normalized || item.departmentName === normalized,
+    );
+    if (byName) return byName;
+  }
+
+  return getDepartmentById(report.departmentId);
+}
+
 export function getStaffDepartmentTheme(department?: Department | null): StaffDepartmentTheme {
   const key = department?.departmentCode ? normalizeDepartmentName(department.departmentCode) : 'ALERT SECURITY';
   return themeByCode[key] ?? themeByCode['ALERT SECURITY'];
@@ -127,4 +139,15 @@ export function getAverageResolution(reports: Report[]) {
 
   const average = Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length);
   return formatDuration(average);
+}
+
+export function getAverageRating(reports: Report[]) {
+  const scores = reports
+    .map((report) => report.requesterRatingScore ?? report.ratingScore ?? report.staffRatingScore)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+
+  if (scores.length === 0) return null;
+
+  const average = scores.reduce((sum, value) => sum + value, 0) / scores.length;
+  return average.toFixed(1);
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Department } from '../types/models';
 import { ecrTheme } from '../theme/ecrTheme';
+import { getDepartmentIconName } from '../utils/staff';
 
 type DepartmentTileProps = {
   department: Department;
@@ -17,6 +18,7 @@ export function DepartmentTile({ department, subtitle, onPress, trailing, select
   const tint = `${accent}0D`;
   const borderTint = selected ? `${accent}55` : `${accent}22`;
   const label = `${department.departmentName}, ${subtitle ?? department.description ?? 'tanpa deskripsi'}`;
+  const iconName = getDepartmentIconName(department.departmentCode);
 
   return (
     <Pressable
@@ -34,9 +36,7 @@ export function DepartmentTile({ department, subtitle, onPress, trailing, select
       ]}
     >
       <View style={[styles.mark, { backgroundColor: accent }]}>
-        <Text selectable style={styles.markText}>
-          {getBadgeText(department.departmentCode)}
-        </Text>
+        <MaterialCommunityIcons name={iconName as any} size={28} color="#FFFFFF" />
       </View>
 
       <Text selectable style={[styles.title, { color: accent }]} numberOfLines={2}>
@@ -57,14 +57,6 @@ export function DepartmentTile({ department, subtitle, onPress, trailing, select
       {trailing ? <View style={styles.trailing}>{trailing}</View> : null}
     </Pressable>
   );
-}
-
-function getBadgeText(code?: string | null) {
-  const normalized = (code ?? '').toUpperCase();
-  if (normalized.includes('HELPDESK')) return 'IT';
-  if (normalized.includes('FIRE')) return 'F';
-  if (normalized.includes('MEDICAL')) return 'M';
-  return 'S';
 }
 
 const styles = StyleSheet.create({
@@ -94,11 +86,6 @@ const styles = StyleSheet.create({
     height: 52,
     justifyContent: 'center',
     width: 52,
-  },
-  markText: {
-    color: '#FFFFFF',
-    fontSize: 21,
-    fontWeight: '900',
   },
   title: {
     fontSize: 12.5,

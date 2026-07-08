@@ -146,9 +146,6 @@ export function ImageZoomModal({ visible, uri, title, onClose }: Props) {
               </Animated.View>
             </PanGestureHandler>
 
-            <View style={styles.hintBadge}>
-              <Text style={styles.hintText}>Cubit untuk zoom, geser untuk melihat detail</Text>
-            </View>
           </View>
 
           <View style={styles.controls}>
@@ -239,20 +236,6 @@ const styles = StyleSheet.create({
   image: {
     height: '100%',
     width: '100%',
-  },
-  hintBadge: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(15,23,42,0.72)',
-    borderRadius: 999,
-    bottom: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    position: 'absolute',
-  },
-  hintText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
   },
   controls: {
     flexDirection: 'row',

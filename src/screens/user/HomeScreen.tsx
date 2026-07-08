@@ -45,7 +45,9 @@ export function HomeScreen({ navigation }: Props) {
     <UserScreenShell
       title=""
       subtitle={undefined}
-      scrollable={false}
+      scrollable
+      refreshing={reportsQuery.isFetching}
+      onRefresh={() => void reportsQuery.refetch()}
     >
       <View style={styles.body}>
         <View style={styles.hero}>
@@ -99,15 +101,13 @@ export function HomeScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.historyList}>
-            {recentReports.length > 0 ? (
-              recentReports.map((report) => <HistoryRow key={report.reportId} report={report} />)
-            ) : (
-              <>
-                <PlaceholderHistoryRow />
-                <PlaceholderHistoryRow />
-                <PlaceholderHistoryRow />
-              </>
-            )}
+            {recentReports.map((report) => (
+              <HistoryRow
+                key={report.reportId}
+                report={report}
+                onPress={() => navigation.navigate('ReportDetail', { report })}
+              />
+            ))}
           </View>
         </View>
       </View>
@@ -115,7 +115,7 @@ export function HomeScreen({ navigation }: Props) {
   );
 }
 
-function HistoryRow({ report }: { report: Report }) {
+function HistoryRow({ report, onPress }: { report: Report; onPress: () => void }) {
   const department = departmentFallbacks.find((item) => item.departmentId === report.departmentId) ?? departmentFallbacks[0];
   const theme = getStaffDepartmentTheme(department);
   const iconName = getDepartmentIconName(department.departmentCode);
@@ -124,7 +124,12 @@ function HistoryRow({ report }: { report: Report }) {
   const timeLabel = formatRelativeTime(report.createdAt);
 
   return (
-    <View style={styles.historyRow}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Buka detail ${title}`}
+      style={({ pressed }) => [styles.historyRow, pressed && styles.pressed]}
+    >
       <View style={styles.historyIconWrap}>
         <View style={[styles.historyIconBadge, { backgroundColor: `${theme.soft}` }]}>
           <MaterialCommunityIcons name={iconName as any} size={19} color={theme.color} />
@@ -141,33 +146,7 @@ function HistoryRow({ report }: { report: Report }) {
           <Text style={[styles.historyTime, { color: theme.color }]}>• {timeLabel}</Text>
         </Text>
       </View>
-    </View>
-  );
-}
-
-function PlaceholderHistoryRow() {
-  const department = departmentFallbacks[0];
-  const theme = getStaffDepartmentTheme(department);
-  const iconName = getDepartmentIconName(department.departmentCode);
-
-  return (
-    <View style={styles.historyRow}>
-      <View style={styles.historyIconWrap}>
-        <View style={[styles.historyIconBadge, { backgroundColor: `${theme.soft}` }]}>
-          <MaterialCommunityIcons name={iconName as any} size={19} color={theme.color} />
-        </View>
-      </View>
-
-      <View style={styles.historyBody}>
-        <Text selectable style={styles.historyTitle} numberOfLines={1}>
-          Unit 158 Maintenance
-        </Text>
-        <Text selectable style={styles.historySubtitle} numberOfLines={1}>
-          Ventilasi outdoor unit perlu dibersihkan{' '}
-          <Text style={styles.historyTime}>• 10 menit lalu</Text>
-        </Text>
-      </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -193,7 +172,6 @@ function formatRelativeTime(value?: string) {
 
 const styles = StyleSheet.create({
   body: {
-    flex: 1,
     gap: ecrTheme.spacing.md,
   },
   hero: {

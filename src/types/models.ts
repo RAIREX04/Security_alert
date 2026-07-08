@@ -44,6 +44,7 @@ export type Report = {
   reportId: number;
   departmentId: number;
   sourceDepartmentId?: number | null;
+  clientSubmissionId?: string | null;
   reporterUserId: number | null;
   assignedStaffId?: number | null;
   description: string;

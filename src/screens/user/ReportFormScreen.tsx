@@ -18,6 +18,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
 import * as Network from 'expo-network';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useAuth } from '../../context/AuthContext';
 import { isNetworkFailure, submitAlertWithOfflineFallback } from '../../services/offline-report-queue';
@@ -367,43 +368,43 @@ export function ReportFormScreen({ navigation, route }: Props) {
                   refreshing={isFetchingLocation}
                   onRefresh={handleLocation}
                   onOpenMaps={openMaps}
+                  forceStaticPreview={!isOnline}
                 />
               </View>
 
               <View style={styles.descriptionCard}>
-              <View style={styles.descriptionRow}>
-                <Text style={styles.descriptionIcon}>✎</Text>
-                <TextInput
-                  ref={descriptionInputRef}
-                  value={description}
+                <View style={styles.descriptionRow}>
+                  <TextInput
+                    ref={descriptionInputRef}
+                    value={description}
                     onChangeText={setDescription}
                     placeholder="Deskripsi kejadian"
                     placeholderTextColor="#97A3B6"
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  style={styles.descriptionInput}
-                />
-                <SpeechToTextControl
-                  isExpoGo={isExpoGo}
-                  isDictating={isDictating}
-                  inputRef={descriptionInputRef}
-                  onBusyChange={setIsDictating}
-                  onNotice={setNotice}
-                  onTranscript={appendDescription}
-                />
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                    style={styles.descriptionInput}
+                  />
+                  <SpeechToTextControl
+                    isExpoGo={isExpoGo}
+                    isDictating={isDictating}
+                    inputRef={descriptionInputRef}
+                    onBusyChange={setIsDictating}
+                    onNotice={setNotice}
+                    onTranscript={appendDescription}
+                  />
+                </View>
+                <Text selectable style={styles.descriptionHint}>
+                  {isExpoGo
+                    ? 'Dikte suara tidak tersedia di Expo Go. Gunakan development build untuk fitur ini.'
+                    : 'Tekan ikon mikrofon untuk mulai dikte suara ke deskripsi.'}
+                </Text>
               </View>
-              <Text selectable style={styles.descriptionHint}>
-                {isExpoGo
-                  ? 'Dikte suara tidak tersedia di Expo Go. Gunakan development build untuk fitur ini.'
-                  : 'Tekan ikon mikrofon untuk mulai dikte suara ke deskripsi.'}
-              </Text>
-            </View>
 
               <View style={styles.photoCard}>
                 <View style={styles.photoRow}>
                   <View style={styles.photoIconWrap}>
-                    <Text style={styles.photoIcon}>▣</Text>
+                    <MaterialCommunityIcons name="camera-plus-outline" size={36} color="#1D4ED8" />
                   </View>
                   <View style={styles.photoBody}>
                     <Text selectable style={styles.photoTitle}>
@@ -657,7 +658,11 @@ function SpeechToTextControl({
       accessibilityLabel="Input suara"
       style={({ pressed }) => [styles.voiceButton, pressed && styles.pressed]}
     >
-      <Text style={styles.voiceButtonText}>{isDictating ? '◼' : '◉'}</Text>
+      <MaterialCommunityIcons
+        name={isDictating ? 'microphone-off' : 'microphone'}
+        size={22}
+        color={isDictating ? '#D12D45' : '#1D4ED8'}
+      />
     </Pressable>
   );
 }
@@ -1070,11 +1075,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  descriptionIcon: {
-    color: '#94A3B8',
-    fontSize: 20,
-    fontWeight: '800',
-  },
   descriptionInput: {
     color: '#101828',
     flex: 1,
@@ -1086,13 +1086,13 @@ const styles = StyleSheet.create({
   },
   voiceButton: {
     alignItems: 'center',
+    backgroundColor: '#EEF4FF',
+    borderColor: '#CFE0FF',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 40,
     justifyContent: 'center',
-    width: 34,
-  },
-  voiceButtonText: {
-    color: '#1D4ED8',
-    fontSize: 18,
-    fontWeight: '900',
+    width: 40,
   },
   descriptionHint: {
     color: '#667085',
@@ -1119,11 +1119,6 @@ const styles = StyleSheet.create({
     height: 84,
     justifyContent: 'center',
     width: 84,
-  },
-  photoIcon: {
-    color: '#2F5DE5',
-    fontSize: 26,
-    fontWeight: '900',
   },
   photoBody: {
     flex: 1,

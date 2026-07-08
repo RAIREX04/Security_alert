@@ -8,6 +8,7 @@ export type LocationSnapshot = {
   label: string;
   address: string | null;
   accuracy: number | null;
+  addressUnavailable?: boolean;
 };
 
 export async function pickImageAsync() {
@@ -63,7 +64,7 @@ export async function getCurrentLocationSnapshot(): Promise<LocationSnapshot> {
   const latitude = location.coords.latitude;
   const longitude = location.coords.longitude;
   const coordinates = `Lat ${latitude.toFixed(6)}, Lng ${longitude.toFixed(6)}`;
-  const addressParts = await Location.reverseGeocodeAsync({ latitude, longitude });
+  const addressParts = await getAddressParts(latitude, longitude);
   const firstAddress = addressParts[0];
   const address = firstAddress
     ? [
@@ -82,7 +83,16 @@ export async function getCurrentLocationSnapshot(): Promise<LocationSnapshot> {
     label: address ? `${address}\n${coordinates}` : coordinates,
     address,
     accuracy: location.coords.accuracy ?? null,
+    addressUnavailable: !address,
   };
+}
+
+async function getAddressParts(latitude: number, longitude: number) {
+  try {
+    return await Location.reverseGeocodeAsync({ latitude, longitude });
+  } catch {
+    return [];
+  }
 }
 
 export function speak(text: string) {

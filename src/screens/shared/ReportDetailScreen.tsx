@@ -44,7 +44,7 @@ export function ReportDetailScreen({ navigation, route }: any) {
 
   const action = useMutation({
     mutationFn: async (name: 'progress' | 'arrived' | 'rate' | 'delete') => {
-        if (name === 'progress') return startProgress(report.reportId, {});
+        if (name === 'progress') return startProgress(report.reportId, { assignedStaffId: user?.userId ?? null });
         if (name === 'arrived') {
           const snapshot = await getCurrentLocationSnapshot();
           return markArrived(report.reportId, { responderLocation: snapshot.label });
@@ -102,9 +102,11 @@ export function ReportDetailScreen({ navigation, route }: any) {
 
   return (
     <Screen
-      title={`Report #${report.reportId}`}
+      title={getReportCoreDescription(report)}
       subtitle={report.department}
       left={<HeaderBackButton onPress={() => navigation.goBack()} />}
+      refreshing={reportQuery.isFetching}
+      onRefresh={() => void reportQuery.refetch()}
     >
       <SectionCard>
         <View style={styles.heroRow}>
@@ -345,6 +347,11 @@ export function ReportDetailScreen({ navigation, route }: any) {
       />
     </Screen>
   );
+}
+
+function getReportCoreDescription(report: Report) {
+  const description = report.description?.replace(/\s+/g, ' ').trim();
+  return description || `Report #${report.reportId}`;
 }
 
 function InfoPill({

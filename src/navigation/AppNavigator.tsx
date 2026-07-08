@@ -2,7 +2,8 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, type ComponentType } from 'react';
+import * as Network from 'expo-network';
+import { useEffect, useRef, type ComponentType } from 'react';
 import { View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ecrTheme } from '../theme/ecrTheme';
@@ -255,11 +256,21 @@ function RoleTabs() {
 }
 
 function RootGate() {
-  const { accessToken, isHydrating, user, setUser, signOut } = useAuth();
+  const {
+    accessToken,
+    isHydrating,
+    refreshCurrentSession,
+    refreshToken,
+    user,
+    setUser,
+  } = useAuth();
+  const networkState = Network.useNetworkState();
+  const attemptedRefreshRef = useRef(false);
+  const isOnline = networkState.isInternetReachable ?? networkState.isConnected ?? true;
   const meQuery = useQuery({
     queryKey: ['auth-me', accessToken],
     queryFn: getMe,
-    enabled: Boolean(accessToken && !isHydrating),
+    enabled: Boolean(accessToken && !isHydrating && isOnline),
   });
 
   useEffect(() => {
@@ -267,12 +278,25 @@ function RootGate() {
   }, [meQuery.data, setUser]);
 
   useEffect(() => {
-    if (meQuery.isError && accessToken) {
-      void signOut();
+    if (!meQuery.isError || !accessToken || !isOnline) {
+      attemptedRefreshRef.current = false;
+      return;
     }
-  }, [accessToken, meQuery.isError, signOut]);
 
-  if (isHydrating || (accessToken && meQuery.isLoading)) {
+    if (attemptedRefreshRef.current) {
+      return;
+    }
+
+    attemptedRefreshRef.current = true;
+
+    if (refreshToken) {
+      void refreshCurrentSession().catch(() => {
+        // Keep the current session visible so transient auth/me failures do not kick the user out.
+      });
+    }
+  }, [accessToken, isOnline, meQuery.isError, refreshCurrentSession, refreshToken]);
+
+  if (isHydrating || (accessToken && isOnline && meQuery.isLoading)) {
     return <CenteredLoadingScreen title="Menyiapkan aplikasi" subtitle="Memeriksa sesi login dan data terbaru." />;
   }
 
@@ -322,11 +346,11 @@ const tabScreenOptions = {
     borderRadius: ecrTheme.radii.xl,
     borderTopColor: ecrTheme.colors.border,
     borderTopWidth: 1,
-    bottom: 14,
-    height: 78,
+    bottom: 54,
+    height: 74,
     left: 14,
-    paddingBottom: 10,
-    paddingTop: 9,
+    paddingBottom: 7,
+    paddingTop: 7,
     position: 'absolute' as const,
     right: 14,
     ...ecrTheme.shadows.medium,

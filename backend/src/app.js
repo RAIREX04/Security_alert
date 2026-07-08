@@ -4,6 +4,7 @@ const path = require('path');
 const helmet = require('helmet');
 const { buildCors } = require('./config/cors');
 const { requestLogger } = require('./middlewares/request-logger.middleware');
+const { methodOverride } = require('./middlewares/method-override.middleware');
 const { notFound } = require('./middlewares/not-found.middleware');
 const { errorHandler } = require('./middlewares/error.middleware');
 const routes = require('./routes');
@@ -17,6 +18,7 @@ function createApp() {
   app.use(buildCors());
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
+  app.use(methodOverride);
   app.use(requestLogger());
 
   const uploadDir = path.resolve(process.env.UPLOAD_DIR || 'uploads');

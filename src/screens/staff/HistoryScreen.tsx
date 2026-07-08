@@ -1,15 +1,23 @@
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { EmptyState } from '../../components/EmptyState';
 import { HeaderBackButton } from '../../components/HeaderBackButton';
+import { HistoryPagination } from '../../components/HistoryPagination';
 import { Screen } from '../../components/Screen';
 import { StaffAlertItem } from '../../components/StaffAlertItem';
 import { useAuth } from '../../context/AuthContext';
 import { listReports, listReportsByUser } from '../../services/report-service';
 import { getDepartmentById } from '../../utils/staff';
+import {
+  getPageCount,
+  getPaginatedItems,
+  HISTORY_PAGE_SIZE,
+  matchesReportSearch,
+} from '../../utils/report-history';
 import type { StaffStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<StaffStackParamList, 'StaffHistory'>;
@@ -29,6 +37,8 @@ export function HistoryScreen({ navigation }: Props) {
   const department = useMemo(() => getDepartmentById(user?.departmentId), [user?.departmentId]);
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>('all');
   const [selectedRequest, setSelectedRequest] = useState<RequestFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
 
   const departmentReportsQuery = useQuery({
     queryKey: ['reports', 'staff-history', user?.departmentId],
@@ -69,9 +79,14 @@ export function HistoryScreen({ navigation }: Props) {
           || (selectedRequest === 'help' && helpRequest)
           || (selectedRequest === 'alert' && !helpRequest);
 
-      return matchesStatus && matchesRequest;
+      return matchesStatus && matchesRequest && matchesReportSearch(item, searchQuery);
     });
-  }, [reports, selectedRequest, selectedStatus]);
+  }, [reports, searchQuery, selectedRequest, selectedStatus]);
+  const pageCount = getPageCount(filteredReports.length);
+  const visibleReports = useMemo(
+    () => getPaginatedItems(filteredReports, page, HISTORY_PAGE_SIZE),
+    [filteredReports, page],
+  );
 
   const counts = useMemo(
     () => ({
@@ -84,12 +99,27 @@ export function HistoryScreen({ navigation }: Props) {
     }),
     [myHelpRequests.length, reports],
   );
+  const refetchAll = async () => {
+    await Promise.all([departmentReportsQuery.refetch(), myReportsQuery.refetch()]);
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedRequest, selectedStatus]);
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   return (
     <Screen
       title={`Riwayat ${department.departmentName}`}
       subtitle="Pantau semua alert yang masuk, aktif, dan sudah selesai di departemen Anda."
       left={<HeaderBackButton onPress={() => navigation.navigate('StaffDashboard')} />}
+      refreshing={departmentReportsQuery.isFetching || myReportsQuery.isFetching}
+      onRefresh={() => void refetchAll()}
     >
       <View style={styles.filterCard}>
         <Text selectable style={styles.filterTitle}>
@@ -155,6 +185,38 @@ export function HistoryScreen({ navigation }: Props) {
         </View>
       </View>
 
+      <View style={styles.searchCard}>
+        <View style={styles.searchHeader}>
+          <Text selectable style={styles.filterTitleSmall}>
+            Cari Riwayat
+          </Text>
+          <Text selectable style={styles.searchCaption}>
+            {filteredReports.length} hasil
+          </Text>
+        </View>
+        <View style={styles.searchInputRow}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#64748B" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Cari deskripsi, lokasi, user..."
+            placeholderTextColor="#94A3B8"
+            returnKeyType="search"
+            style={styles.searchInput}
+          />
+          {searchQuery ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Hapus pencarian"
+              onPress={() => setSearchQuery('')}
+              style={({ pressed }) => [styles.clearButton, pressed && styles.pressed]}
+            >
+              <MaterialCommunityIcons name="close" size={18} color="#64748B" />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
       {myHelpRequests.length > 0 ? (
         <View style={styles.myHelpCard}>
           <Text selectable style={styles.myHelpTitle}>
@@ -183,21 +245,32 @@ export function HistoryScreen({ navigation }: Props) {
         <EmptyState
           title="Belum ada riwayat"
           description={
-            selectedStatus === 'all' && selectedRequest === 'all'
+            searchQuery.trim()
+              ? 'Tidak ada riwayat yang cocok dengan pencarian.'
+              : selectedStatus === 'all' && selectedRequest === 'all'
               ? 'Alert dan minta bantuan departemen Anda akan tampil di sini.'
               : 'Tidak ada riwayat pada status yang dipilih.'
           }
         />
       ) : (
-        <View style={styles.list}>
-          {filteredReports.map((report) => (
-            <StaffAlertItem
-              key={report.reportId}
-              report={report}
-              onPress={() => navigation.navigate('ReportDetail', { report })}
-            />
-          ))}
-        </View>
+        <>
+          <View style={styles.list}>
+            {visibleReports.map((report) => (
+              <StaffAlertItem
+                key={report.reportId}
+                report={report}
+                onPress={() => navigation.navigate('ReportDetail', { report })}
+              />
+            ))}
+          </View>
+          <HistoryPagination
+            page={page}
+            pageCount={pageCount}
+            totalItems={filteredReports.length}
+            pageSize={HISTORY_PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </Screen>
   );
@@ -224,6 +297,56 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 10,
     padding: 16,
+  },
+  searchCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE6F5',
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 12,
+    padding: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 1,
+  },
+  searchHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  searchCaption: {
+    color: '#64748B',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  searchInputRow: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#DCE6F5',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 50,
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    color: '#0F172A',
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 0,
+    paddingVertical: 10,
+  },
+  clearButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
   },
   myHelpTitle: {
     color: '#9A3412',

@@ -69,11 +69,14 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 999,
     borderWidth: 1,
+    flexShrink: 0,
+    minWidth: 76,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
   badgeCompact: {
     gap: 6,
+    minWidth: 68,
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
@@ -89,6 +92,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '900',
+    textAlign: 'center',
     textTransform: 'capitalize',
   },
   labelCompact: {

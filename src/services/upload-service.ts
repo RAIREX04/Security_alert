@@ -15,9 +15,9 @@ type PickedAsset = {
   fileSize?: number | null;
 };
 
-async function uploadFile(path: string, asset: PickedAsset): Promise<UploadedFile> {
+async function uploadFile(path: string, asset: PickedAsset, requireAuth = true): Promise<UploadedFile> {
   const accessToken = getAccessToken();
-  if (!accessToken) {
+  if (requireAuth && !accessToken) {
     throw new Error('Sesi login habis. Silakan login ulang sebelum upload foto.');
   }
 
@@ -30,7 +30,7 @@ async function uploadFile(path: string, asset: PickedAsset): Promise<UploadedFil
 
   const response = await api.post<{ data: UploadedFile }>(path, formData, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       'Content-Type': 'multipart/form-data',
     },
   });
@@ -40,6 +40,10 @@ async function uploadFile(path: string, asset: PickedAsset): Promise<UploadedFil
 
 export function uploadProfilePhoto(asset: PickedAsset) {
   return uploadFile('/uploads/profile-photo', asset);
+}
+
+export function uploadRegistrationProfilePhoto(asset: PickedAsset) {
+  return uploadFile('/uploads/profile-photo', asset, false);
 }
 
 export function uploadReportPhoto(asset: PickedAsset) {

@@ -1,5 +1,5 @@
 import { PropsWithChildren, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ecrTheme } from '../theme/ecrTheme';
 
@@ -8,9 +8,11 @@ type ScreenProps = PropsWithChildren<{
   subtitle?: string;
   left?: ReactNode;
   right?: ReactNode;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }>;
 
-export function Screen({ title, subtitle, left, right, children }: ScreenProps) {
+export function Screen({ title, subtitle, left, right, refreshing = false, onRefresh, children }: ScreenProps) {
   const { width } = useWindowDimensions();
   const compact = width < 390;
 
@@ -20,6 +22,11 @@ export function Screen({ title, subtitle, left, right, children }: ScreenProps) 
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[styles.container, compact && styles.containerCompact]}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ecrTheme.colors.pertaminaBlue} />
+          ) : undefined
+        }
       >
         <View style={styles.header}>
           <View style={styles.headerLeft}>

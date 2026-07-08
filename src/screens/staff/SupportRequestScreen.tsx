@@ -20,18 +20,20 @@ export function SupportRequestScreen({ navigation }: Props) {
     () => (user?.departmentId ? getDepartmentById(user.departmentId) : null),
     [user?.departmentId],
   );
-  const { data, isLoading } = useQuery({
+  const departmentsQuery = useQuery({
     queryKey: ['departments'],
     queryFn: listDepartments,
   });
 
-  const departments = (data ?? []).filter((item) => item.departmentId !== currentDepartment?.departmentId);
+  const departments = (departmentsQuery.data ?? []).filter((item) => item.departmentId !== currentDepartment?.departmentId);
 
   return (
     <Screen
       title="Minta Bantuan"
       subtitle="Kirim alert bantuan ke departemen lain saat tim Anda membutuhkan dukungan tambahan di lapangan."
       left={<HeaderBackButton onPress={() => navigation.navigate('StaffDashboard')} />}
+      refreshing={departmentsQuery.isFetching}
+      onRefresh={() => void departmentsQuery.refetch()}
     >
       <View style={styles.introCard}>
         <Text selectable style={styles.introTitle}>
@@ -42,7 +44,7 @@ export function SupportRequestScreen({ navigation }: Props) {
         </Text>
       </View>
 
-      {isLoading ? (
+      {departmentsQuery.isLoading ? (
         <Text selectable style={styles.loading}>
           Memuat departemen...
         </Text>

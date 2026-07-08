@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as Network from 'expo-network';
 import { AppNoticeModal } from '../../components/AppNoticeModal';
 import { AppTextInput } from '../../components/AppTextInput';
 import { PhotoSourceSheet } from '../../components/PhotoSourceSheet';
@@ -10,17 +11,18 @@ import { Screen } from '../../components/Screen';
 import { SectionCard } from '../../components/SectionCard';
 import { useAuth } from '../../context/AuthContext';
 import { capturePhotoAsync, pickImageAsync } from '../../services/device-service';
-import { updateMe } from '../../services/user-service';
-import { uploadProfilePhoto } from '../../services/upload-service';
+import { queueProfileUpdateWithOfflineFallback } from '../../services/offline-profile-queue';
 import type { User } from '../../types/models';
-import { getApiErrorMessage } from '../../config/api';
 import { ProfileAvatar } from '../../components/ProfileAvatar';
 import { normalizeMediaUrl } from '../../utils/media';
+import { updateCachedOfflineAuthSession } from '../../services/local-auth-service';
+import { uploadProfilePhoto } from '../../services/upload-service';
 
 export function EditProfileScreen({ navigation, route }: any) {
   const profile: User = route.params.user;
-  const { setUser } = useAuth();
+  const { user: authUser, accessToken, refreshToken, setUser } = useAuth();
   const queryClient = useQueryClient();
+  const networkState = Network.useNetworkState();
   const [fullName, setFullName] = useState(profile.fullName);
   const [username, setUsername] = useState(profile.username);
   const [email, setEmail] = useState(profile.email);
@@ -29,18 +31,37 @@ export function EditProfileScreen({ navigation, route }: any) {
   const [photoPreviewUri, setPhotoPreviewUri] = useState<string | null>(normalizeMediaUrl(profile.photoUrl));
   const [photoUrl, setPhotoUrl] = useState<string | null>(normalizeMediaUrl(profile.photoUrl));
   const [photoName, setPhotoName] = useState<string | null>(null);
+  const [photoAsset, setPhotoAsset] = useState<{
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isPhotoSheetVisible, setIsPhotoSheetVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string; tone?: 'success' | 'info' | 'warning' } | null>(null);
 
-  const handlePhotoUpload = async (asset: { uri: string; fileName?: string | null; mimeType?: string | null }) => {
+  const isOnline = networkState.isInternetReachable ?? networkState.isConnected ?? true;
+
+  const handlePhotoUpload = async (asset: { uri: string; fileName?: string | null; mimeType?: string | null; fileSize?: number | null }) => {
     setIsUploadingPhoto(true);
     try {
+      setPhotoAsset(asset);
       setPhotoPreviewUri(asset.uri);
-      const uploaded = await uploadProfilePhoto(asset);
-      setPhotoUrl(uploaded.fileUrl);
-      setPhotoName(uploaded.fileName);
+      if (isOnline) {
+        const uploaded = await uploadProfilePhoto(asset);
+        setPhotoUrl(uploaded.fileUrl);
+        setPhotoName(uploaded.fileName);
+      } else {
+        setPhotoUrl(null);
+        setPhotoName(asset.fileName ?? null);
+        setNotice({
+          title: 'Foto disimpan sementara',
+          message: 'Foto akan dikirim saat jaringan kembali.',
+          tone: 'info',
+        });
+      }
     } catch (error) {
       setNotice({
         title: 'Upload gagal',
@@ -63,42 +84,65 @@ export function EditProfileScreen({ navigation, route }: any) {
   };
 
   const mutation = useMutation({
-    mutationFn: () => updateMe({
-      fullName,
-      username,
-      email,
-      phoneNumber,
-      photoUrl: photoUrl ?? undefined,
-      ...(pin ? { pin } : {}),
-    }),
-    onSuccess: async (user) => {
+    mutationFn: async () => {
+      const result = await queueProfileUpdateWithOfflineFallback({
+        userId: authUser?.userId ?? profile.userId,
+        fullName,
+        username,
+        email,
+        phoneNumber,
+        pin: pin.trim() || undefined,
+        photo: photoAsset
+          ? {
+              ...photoAsset,
+              uploadedFileUrl: photoUrl ?? undefined,
+            }
+          : null,
+      });
+      return result;
+    },
+    onSuccess: async (result) => {
+      const user = result.kind === 'sent' ? result.user : buildOptimisticUser();
       setUser(user);
       queryClient.setQueryData(['me'], user);
       queryClient.setQueryData(['auth-me'], user);
       await queryClient.invalidateQueries({ queryKey: ['me'] });
       await queryClient.invalidateQueries({ queryKey: ['auth-me'] });
+      await updateCachedOfflineAuthSession(
+        { accessToken: accessToken ?? '', refreshToken: refreshToken ?? '', user },
+        pin.trim() || null,
+      ).catch(() => {});
       setSuccessVisible(true);
     },
     onError: (error) =>
       setNotice({
         title: 'Gagal',
-        message: getApiErrorMessage(error),
+        message: error instanceof Error ? error.message : 'Coba lagi.',
         tone: 'warning',
       }),
   });
 
   const submit = () => {
-    if (pin && !/^\d{6}$/.test(pin)) {
-      setNotice({ title: 'Validasi', message: 'PIN wajib tepat 6 angka.', tone: 'warning' });
+    if (pin && pin.trim().length < 6) {
+      setNotice({ title: 'Validasi', message: 'Password minimal 6 karakter.', tone: 'warning' });
       return;
     }
     mutation.mutate();
   };
 
+  const buildOptimisticUser = (): User => ({
+    ...profile,
+    fullName: fullName.trim(),
+    username: username.trim(),
+    email: email.trim(),
+    phoneNumber: phoneNumber.trim() || null,
+    photoUrl: photoUrl ?? photoPreviewUri ?? profile.photoUrl ?? null,
+  });
+
   return (
     <Screen
       title="Edit Profile"
-      subtitle="Perbarui identitas dan PIN akun Anda."
+      subtitle="Perbarui identitas dan password akun Anda."
       left={<HeaderBackButton onPress={() => navigation.goBack()} />}
     >
       <View style={styles.form}>
@@ -127,7 +171,14 @@ export function EditProfileScreen({ navigation, route }: any) {
         <AppTextInput label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" />
         <AppTextInput label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
         <AppTextInput label="Telepon" value={phoneNumber} onChangeText={setPhoneNumber} />
-        <AppTextInput label="PIN baru 6 angka (opsional)" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
+        <AppTextInput
+          label="Password baru (opsional)"
+          value={pin}
+          onChangeText={setPin}
+          secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
+        />
         <PrimaryButton
           title={mutation.isPending ? 'Menyimpan...' : isUploadingPhoto ? 'Mengunggah foto...' : 'Simpan Profil'}
           onPress={submit}

@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AuthField } from '../../components/AuthField';
 import { AppNoticeModal } from '../../components/AppNoticeModal';
 import { AuthScreenShell } from '../../components/AuthScreenShell';
-import { DepartmentTile } from '../../components/DepartmentTile';
+import { PhotoSourceSheet } from '../../components/PhotoSourceSheet';
+import { ProfilePhotoInput } from '../../components/ProfilePhotoInput';
 import { registerStaff } from '../../services/auth-service';
+import { capturePhotoAsync, pickImageAsync } from '../../services/device-service';
+import { uploadRegistrationProfilePhoto } from '../../services/upload-service';
 import { departmentFallbacks } from '../../utils/department';
 import type { AuthStackParamList } from '../../types/navigation';
 
@@ -19,6 +22,13 @@ export function StaffRegisterScreen({ navigation }: Props) {
   const [pin, setPin] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [departmentId, setDepartmentId] = useState(departmentFallbacks[0].departmentId);
+  const [photoAsset, setPhotoAsset] = useState<{
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null>(null);
+  const [isPhotoSheetVisible, setIsPhotoSheetVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<{ title: string; message: string; tone?: 'success' | 'info' | 'warning' } | null>(null);
 
@@ -27,18 +37,48 @@ export function StaffRegisterScreen({ navigation }: Props) {
     [departmentId],
   );
 
+  const handlePhotoPicked = (asset: {
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    fileSize?: number | null;
+  } | null) => {
+    if (asset) setPhotoAsset(asset);
+  };
+
+  const handlePickCamera = async () => {
+    try {
+      handlePhotoPicked(await capturePhotoAsync());
+    } catch (error) {
+      setNotice({ title: 'Foto gagal', message: error instanceof Error ? error.message : 'Coba lagi.', tone: 'warning' });
+    }
+  };
+
+  const handlePickGallery = async () => {
+    try {
+      handlePhotoPicked(await pickImageAsync());
+    } catch (error) {
+      setNotice({ title: 'Foto gagal', message: error instanceof Error ? error.message : 'Coba lagi.', tone: 'warning' });
+    }
+  };
+
   const handleSubmit = async () => {
     if (!fullName || !username || !pin) {
-      setNotice({ title: 'Validasi', message: 'Nama, username, dan PIN wajib diisi.', tone: 'warning' });
+      setNotice({ title: 'Validasi', message: 'Nama, username, dan password wajib diisi.', tone: 'warning' });
       return;
     }
-    if (!/^\d{6}$/.test(pin)) {
-      setNotice({ title: 'Validasi', message: 'PIN wajib tepat 6 angka.', tone: 'warning' });
+    if (pin.trim().length < 6) {
+      setNotice({ title: 'Validasi', message: 'Password minimal 6 karakter.', tone: 'warning' });
+      return;
+    }
+    if (!photoAsset) {
+      setNotice({ title: 'Validasi', message: 'Foto profil wajib ditambahkan.', tone: 'warning' });
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const uploadedPhoto = await uploadRegistrationProfilePhoto(photoAsset);
       await registerStaff({
         fullName,
         username,
@@ -46,6 +86,7 @@ export function StaffRegisterScreen({ navigation }: Props) {
         pin,
         phoneNumber,
         departmentId,
+        photoUrl: uploadedPhoto.fileUrl,
       });
       setNotice({
         title: 'Berhasil',
@@ -111,13 +152,20 @@ export function StaffRegisterScreen({ navigation }: Props) {
           keyboardType="phone-pad"
         />
         <AuthField
-          label="PIN 6 angka"
+          label="Password"
           icon="P"
           value={pin}
           onChangeText={setPin}
-          keyboardType="number-pad"
-          maxLength={6}
           secureTextEntry
+          textContentType="newPassword"
+          autoComplete="new-password"
+        />
+        <ProfilePhotoInput
+          name={fullName}
+          photoUri={photoAsset?.uri}
+          fileName={photoAsset?.fileName}
+          required
+          onPress={() => setIsPhotoSheetVisible(true)}
         />
 
         <View style={styles.sectionHeader}>
@@ -130,6 +178,8 @@ export function StaffRegisterScreen({ navigation }: Props) {
         <View style={styles.departmentList}>
           {departmentFallbacks.map((department) => {
             const selected = department.departmentId === selectedDepartment.departmentId;
+            const accent = department.color ?? '#2563EB';
+            const badge = getDepartmentBadge(department.departmentCode);
 
             return (
               <Pressable
@@ -141,11 +191,26 @@ export function StaffRegisterScreen({ navigation }: Props) {
                   selected && styles.departmentSelected,
                 ]}
               >
-                <DepartmentTile
-                  department={department}
-                  subtitle={department.description ?? undefined}
-                  selected={selected}
-                />
+                <View style={[styles.departmentIcon, { backgroundColor: `${accent}14` }]}>
+                  <Text style={[styles.departmentIconText, { color: accent }]}>{badge}</Text>
+                </View>
+                <View style={styles.departmentCopy}>
+                  <Text
+                    selectable
+                    numberOfLines={1}
+                    style={[styles.departmentName, { color: selected ? accent : '#173260' }]}
+                  >
+                    {department.departmentName}
+                  </Text>
+                  <Text selectable numberOfLines={2} style={styles.departmentDescription}>
+                    {department.description ?? 'Pilih sebagai departemen staff.'}
+                  </Text>
+                </View>
+                <View style={[styles.departmentCheck, { borderColor: selected ? accent : '#D9E4F2' }]}>
+                  <Text style={[styles.departmentCheckText, { color: selected ? accent : '#94A3B8' }]}>
+                    {selected ? 'OK' : '>'}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -188,8 +253,24 @@ export function StaffRegisterScreen({ navigation }: Props) {
           if (shouldGoBack) navigation.goBack();
         }}
       />
+      <PhotoSourceSheet
+        visible={isPhotoSheetVisible}
+        onClose={() => setIsPhotoSheetVisible(false)}
+        onCamera={() => void handlePickCamera()}
+        onGallery={() => void handlePickGallery()}
+        title="Pilih foto profil"
+        description="Foto profil wajib untuk pengajuan staff."
+      />
     </AuthScreenShell>
   );
+}
+
+function getDepartmentBadge(code?: string | null) {
+  const normalized = (code ?? '').toUpperCase();
+  if (normalized.includes('HELPDESK')) return 'IT';
+  if (normalized.includes('FIRE')) return 'F';
+  if (normalized.includes('MEDICAL')) return 'M';
+  return 'S';
 }
 
 const styles = StyleSheet.create({
@@ -246,14 +327,65 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
   },
   departmentList: {
-    gap: 12,
+    gap: 9,
   },
   departmentItem: {
-    borderRadius: 26,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D9E4F2',
+    borderRadius: 24,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 76,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   departmentSelected: {
-    transform: [{ scale: 0.995 }],
+    backgroundColor: '#F8FBFF',
+    borderColor: '#9DB7FF',
+    borderWidth: 1.5,
     opacity: 1,
+  },
+  departmentIcon: {
+    alignItems: 'center',
+    borderRadius: 18,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  departmentIconText: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  departmentCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  departmentName: {
+    fontSize: 13.5,
+    fontWeight: '900',
+    lineHeight: 18,
+    textTransform: 'uppercase',
+  },
+  departmentDescription: {
+    color: '#5E6A80',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  departmentCheck: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
+  },
+  departmentCheckText: {
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: -2,
   },
   primaryButton: {
     alignItems: 'center',

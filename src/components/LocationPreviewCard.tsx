@@ -13,6 +13,7 @@ type Props = {
   refreshing?: boolean;
   onRefresh?: () => void;
   onOpenMaps?: () => void;
+  forceStaticPreview?: boolean;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -124,6 +125,7 @@ function LocationPreviewCardInner({
   refreshing,
   onRefresh,
   onOpenMaps,
+  forceStaticPreview,
 }: Props) {
   const locationLabel = locationText?.trim() || 'Lokasi belum tersedia';
   const hasCoordinates = latitude != null && longitude != null;
@@ -140,8 +142,8 @@ function LocationPreviewCardInner({
   const markerLeft = hasCoordinates ? `${clamp(((longitude! + 180) / 360) * 100, 18, 82)}%` : '50%';
   const markerTop = hasCoordinates ? `${clamp(((90 - latitude!) / 180) * 100, 18, 82)}%` : '50%';
   const mapHtml = useMemo(
-    () => (hasCoordinates ? buildMapHtml(latitude!, longitude!, locationLabel, accuracy) : null),
-    [accuracy, hasCoordinates, latitude, locationLabel, longitude],
+    () => (hasCoordinates && !forceStaticPreview ? buildMapHtml(latitude!, longitude!, locationLabel, accuracy) : null),
+    [accuracy, forceStaticPreview, hasCoordinates, latitude, locationLabel, longitude],
   );
 
   return (

@@ -25,6 +25,11 @@ const Report = sequelize.define(
       allowNull: true,
       field: 'source_department_id',
     },
+    clientSubmissionId: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: 'client_submission_id',
+    },
     assignedStaffId: {
       type: DataTypes.INTEGER,
       allowNull: true,

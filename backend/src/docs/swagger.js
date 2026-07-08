@@ -461,7 +461,7 @@ const spec = {
       get: { tags: ['Notifications'], summary: 'Log notifikasi', security: [{ bearerAuth: [] }], responses: { 200: { description: 'Log notifikasi' } } },
     },
     '/uploads/profile-photo': {
-      post: { tags: ['Uploads'], summary: 'Upload profile photo', security: [{ bearerAuth: [] }], responses: { 201: { description: 'Upload berhasil' } } },
+      post: { tags: ['Uploads'], summary: 'Upload profile photo', responses: { 201: { description: 'Upload berhasil' } } },
     },
     '/uploads/report-photo': {
       post: { tags: ['Uploads'], summary: 'Upload incident photo', security: [{ bearerAuth: [] }], responses: { 201: { description: 'Upload berhasil' } } },

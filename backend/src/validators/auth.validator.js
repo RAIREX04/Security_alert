@@ -1,6 +1,6 @@
 const { z } = require('zod');
 
-const pinSchema = z.string().regex(/^\d{6}$/, 'PIN wajib tepat 6 angka');
+const passwordSchema = z.string().min(6, 'Password minimal 6 karakter');
 const optionalEmail = z.preprocess(
   (value) => value === '' ? undefined : value,
   z.string().email().optional().nullable(),
@@ -8,16 +8,16 @@ const optionalEmail = z.preprocess(
 
 const loginBody = z.object({
   username: z.string().min(3),
-  pin: pinSchema,
+  pin: passwordSchema,
 });
 
 const registerUserBody = z.object({
   fullName: z.string().min(3),
   username: z.string().min(3),
   email: optionalEmail,
-  pin: pinSchema,
+  pin: passwordSchema,
   phoneNumber: z.string().optional().nullable(),
-  photoUrl: z.string().optional().nullable(),
+  photoUrl: z.string().min(1, 'Foto profil wajib ditambahkan'),
 });
 
 const registerStaffBody = registerUserBody.extend({
@@ -34,8 +34,8 @@ const logoutBody = z.object({
 });
 
 const changePinBody = z.object({
-  currentPin: pinSchema,
-  newPin: pinSchema,
+  currentPin: passwordSchema,
+  newPin: passwordSchema,
 });
 
 module.exports = {

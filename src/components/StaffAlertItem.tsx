@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Report } from '../types/models';
 import { formatDate } from '../utils/format';
-import { getDepartmentGlyph, getDepartmentById, getStaffDepartmentTheme } from '../utils/staff';
+import { getDepartmentById, getDepartmentIconName, getStaffDepartmentTheme } from '../utils/staff';
 import { StatusBadge } from './StatusBadge';
 import { ecrTheme } from '../theme/ecrTheme';
 
@@ -14,6 +15,7 @@ export function StaffAlertItem({ report, onPress }: StaffAlertItemProps) {
   const { width } = useWindowDimensions();
   const department = getDepartmentById(report.departmentId);
   const theme = getStaffDepartmentTheme(department);
+  const iconName = getDepartmentIconName(department.departmentCode);
   const isHelpRequest = report.sourceDepartmentId != null && report.sourceDepartmentId !== report.departmentId;
   const isCompact = width < 380;
   const requesterReviewScore = report.requesterRatingScore ?? report.ratingScore;
@@ -34,7 +36,7 @@ export function StaffAlertItem({ report, onPress }: StaffAlertItemProps) {
       ]}
     >
       <View style={[styles.iconWrap, { backgroundColor: theme.soft }]} >
-        <Text style={[styles.icon, { color: theme.color }]}>{getDepartmentGlyph(department.departmentCode)}</Text>
+        <MaterialCommunityIcons name={iconName as any} size={24} color={theme.color} />
       </View>
 
       <View style={styles.body}>
@@ -105,10 +107,6 @@ const styles = StyleSheet.create({
     height: 46,
     justifyContent: 'center',
     width: 46,
-  },
-  icon: {
-    fontSize: 20,
-    fontWeight: '900',
   },
   body: {
     flex: 1,

@@ -1,15 +1,23 @@
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { EmptyState } from '../../components/EmptyState';
 import { HeaderBackButton } from '../../components/HeaderBackButton';
+import { HistoryPagination } from '../../components/HistoryPagination';
 import { MetricCard } from '../../components/MetricCard';
 import { ReportCard } from '../../components/ReportCard';
 import { Screen } from '../../components/Screen';
 import { SectionCard } from '../../components/SectionCard';
 import { listReports } from '../../services/report-service';
+import {
+  getPageCount,
+  getPaginatedItems,
+  HISTORY_PAGE_SIZE,
+  matchesReportSearch,
+} from '../../utils/report-history';
 import type { AdminStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'AdminHistory'>;
@@ -20,26 +28,47 @@ export function HistoryScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const compact = width < 380;
   const [selectedStatus, setSelectedStatus] = useState<(typeof STATUS_FILTERS)[number]>('all');
-  const { data, isLoading } = useQuery({
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const reportsQuery = useQuery({
     queryKey: ['reports', 'admin-history'],
     queryFn: () => listReports(),
   });
 
-  const reports = data ?? [];
+  const reports = reportsQuery.data ?? [];
   const filteredReports = useMemo(() => {
-    if (selectedStatus === 'all') return reports;
-    return reports.filter((item) => item.status === selectedStatus);
-  }, [reports, selectedStatus]);
+    return reports.filter((item) => {
+      const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
+      return matchesStatus && matchesReportSearch(item, searchQuery);
+    });
+  }, [reports, searchQuery, selectedStatus]);
+  const pageCount = getPageCount(filteredReports.length);
+  const visibleReports = useMemo(
+    () => getPaginatedItems(filteredReports, page, HISTORY_PAGE_SIZE),
+    [filteredReports, page],
+  );
 
   const openCount = reports.filter((item) => item.status === 'open').length;
   const progressCount = reports.filter((item) => item.status === 'progress').length;
   const closeCount = reports.filter((item) => item.status === 'close').length;
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedStatus]);
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   return (
     <Screen
       title="Riwayat"
       subtitle="Seluruh alert lintas departemen."
       left={<HeaderBackButton onPress={() => navigation.navigate('AdminDashboard')} />}
+      refreshing={reportsQuery.isFetching}
+      onRefresh={() => void reportsQuery.refetch()}
     >
       <SectionCard tone="soft">
         <Text selectable style={styles.sectionLabel}>
@@ -60,7 +89,12 @@ export function HistoryScreen({ navigation }: Props) {
       </SectionCard>
 
       <SectionCard>
-        <Text style={styles.filterLabel}>Filter status</Text>
+        <View style={styles.filterHeader}>
+          <Text style={styles.filterLabel}>Filter status</Text>
+          <Text selectable style={styles.filterCaption}>
+            {filteredReports.length} tampil
+          </Text>
+        </View>
         <View style={styles.filterRow}>
           {STATUS_FILTERS.map((status) => {
             const active = selectedStatus === status;
@@ -85,7 +119,39 @@ export function HistoryScreen({ navigation }: Props) {
         </View>
       </SectionCard>
 
-      {isLoading ? (
+      <SectionCard>
+        <View style={styles.filterHeader}>
+          <Text selectable style={styles.filterLabel}>
+            Cari report
+          </Text>
+          <Text selectable style={styles.filterCaption}>
+            10 per halaman
+          </Text>
+        </View>
+        <View style={styles.searchInputRow}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#64748B" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Cari deskripsi, lokasi, staff, user..."
+            placeholderTextColor="#94A3B8"
+            returnKeyType="search"
+            style={styles.searchInput}
+          />
+          {searchQuery ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Hapus pencarian"
+              onPress={() => setSearchQuery('')}
+              style={({ pressed }) => [styles.clearButton, pressed && styles.pressed]}
+            >
+              <MaterialCommunityIcons name="close" size={18} color="#64748B" />
+            </Pressable>
+          ) : null}
+        </View>
+      </SectionCard>
+
+      {reportsQuery.isLoading ? (
         <Text selectable style={styles.loading}>
           Memuat report...
         </Text>
@@ -93,21 +159,32 @@ export function HistoryScreen({ navigation }: Props) {
         <EmptyState
           title="Belum ada report"
           description={
-            selectedStatus === 'all'
+            searchQuery.trim()
+              ? 'Tidak ada report yang cocok dengan pencarian.'
+              : selectedStatus === 'all'
               ? 'Semua report akan tampil di sini.'
               : 'Tidak ada report pada status yang dipilih.'
           }
         />
       ) : (
-        <View style={styles.list}>
-          {filteredReports.map((report) => (
-            <ReportCard
-              key={report.reportId}
-              report={report}
-              onPress={() => navigation.navigate('ReportDetail', { report })}
-            />
-          ))}
-        </View>
+        <>
+          <View style={styles.list}>
+            {visibleReports.map((report) => (
+              <ReportCard
+                key={report.reportId}
+                report={report}
+                onPress={() => navigation.navigate('ReportDetail', { report })}
+              />
+            ))}
+          </View>
+          <HistoryPagination
+            page={page}
+            pageCount={pageCount}
+            totalItems={filteredReports.length}
+            pageSize={HISTORY_PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </Screen>
   );
@@ -143,6 +220,17 @@ const styles = StyleSheet.create({
     color: '#0F2C57',
     fontSize: 14,
     fontWeight: '800',
+  },
+  filterCaption: {
+    color: '#64748B',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  filterHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   filterRow: {
@@ -169,10 +257,40 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: '#B91C1C',
   },
+  searchInputRow: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#D7E3F0',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 50,
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    color: '#0F172A',
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 0,
+    paddingVertical: 10,
+  },
+  clearButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
+  },
   loading: {
     color: '#64748B',
   },
   list: {
     gap: 12,
+  },
+  pressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
 });

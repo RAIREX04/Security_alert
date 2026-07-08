@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Department } from '../types/models';
-import { getDepartmentGlyph, getStaffDepartmentTheme } from '../utils/staff';
+import { getDepartmentIconName, getStaffDepartmentTheme } from '../utils/staff';
 import { ecrTheme } from '../theme/ecrTheme';
 
 type StaffDepartmentCardProps = {
@@ -11,6 +11,7 @@ type StaffDepartmentCardProps = {
 
 export function StaffDepartmentCard({ department, onPress }: StaffDepartmentCardProps) {
   const theme = getStaffDepartmentTheme(department);
+  const iconName = getDepartmentIconName(department.departmentCode);
 
   return (
     <Pressable
@@ -26,9 +27,7 @@ export function StaffDepartmentCard({ department, onPress }: StaffDepartmentCard
       ]}
     >
       <View style={[styles.iconWrap, { backgroundColor: theme.soft }]}>
-        <Text selectable style={[styles.icon, { color: theme.color }]}>
-          {getDepartmentGlyph(department.departmentCode)}
-        </Text>
+        <MaterialCommunityIcons name={iconName as any} size={28} color={theme.color} />
       </View>
 
       <View style={styles.body}>
@@ -68,10 +67,6 @@ const styles = StyleSheet.create({
     height: 54,
     justifyContent: 'center',
     width: 54,
-  },
-  icon: {
-    fontSize: 24,
-    fontWeight: '900',
   },
   body: {
     flex: 1,

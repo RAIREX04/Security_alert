@@ -9,8 +9,11 @@ import { AuthProvider } from './src/context/AuthContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { NotificationBootstrap } from './src/components/NotificationBootstrap';
 import { AlarmServiceSync } from './src/components/AlarmServiceSync';
+import { StaffAlertMonitor } from './src/components/StaffAlertMonitor';
 import { RequesterReviewMonitor } from './src/components/RequesterReviewMonitor';
 import { OfflineReportSync } from './src/components/OfflineReportSync';
+import { OfflineProfileSync } from './src/components/OfflineProfileSync';
+import { PushTokenSync } from './src/components/PushTokenSync';
 import { queryClient } from './src/config/query-client';
 
 Notifications.setNotificationHandler({
@@ -30,8 +33,11 @@ export default function App() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <StatusBar style="dark" />
             <NotificationBootstrap />
+            <PushTokenSync />
             <AlarmServiceSync />
+            <StaffAlertMonitor />
             <OfflineReportSync />
+            <OfflineProfileSync />
             <AppNavigator />
             <RequesterReviewMonitor />
           </GestureHandlerRootView>

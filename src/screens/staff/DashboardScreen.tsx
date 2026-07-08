@@ -1,4 +1,5 @@
 ﻿import { useMemo } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -59,11 +60,16 @@ export function DashboardScreen({ navigation }: Props) {
   const helpRequests = reports.filter((item) => item.sourceDepartmentId != null && item.sourceDepartmentId !== item.departmentId && item.status !== 'close' && !item.assignedStaffId);
   const averageResolution = getAverageResolution(closeReports);
   const recentReports = [...reports].sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+  const refetchAll = async () => {
+    await Promise.all([departmentReportsQuery.refetch(), myReportsQuery.refetch()]);
+  };
 
   return (
     <Screen
       title={`Dashboard ${department.departmentName}`}
       subtitle="Pantau alert departemen, ambil tugas, dan selesaikan dengan cepat."
+      refreshing={departmentReportsQuery.isFetching || myReportsQuery.isFetching}
+      onRefresh={() => void refetchAll()}
     >
       <SectionCard tone="soft">
         <Text selectable style={styles.sectionLabel}>
@@ -138,12 +144,12 @@ export function DashboardScreen({ navigation }: Props) {
             </Text>
           </View>
           <Pressable
-            onPress={() => void departmentReportsQuery.refetch()}
+            onPress={() => void refetchAll()}
             accessibilityRole="button"
             accessibilityLabel="Refresh alert"
             style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}
           >
-            <Text style={styles.refreshButtonIcon}>↻</Text>
+            <MaterialCommunityIcons name="refresh" size={22} color="#101828" />
           </Pressable>
         </View>
 
@@ -369,11 +375,6 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 44,
-  },
-  refreshButtonIcon: {
-    color: '#101828',
-    fontSize: 22,
-    fontWeight: '900',
   },
   loading: {
     color: '#667085',

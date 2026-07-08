@@ -15,20 +15,22 @@ type Props = {
 
 export function SupportRequestScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { data, isLoading } = useQuery({
+  const departmentsQuery = useQuery({
     queryKey: ['departments'],
     queryFn: listDepartments,
   });
 
-  const departments = (data ?? []).filter((item) => item.departmentId !== user?.departmentId);
+  const departments = (departmentsQuery.data ?? []).filter((item) => item.departmentId !== user?.departmentId);
 
   return (
     <Screen
       title="Minta Bantuan"
       subtitle="Pilih departemen lain untuk mengirim bantuan lintas tim."
       left={<HeaderBackButton onPress={() => navigation.navigate('UserHome')} />}
+      refreshing={departmentsQuery.isFetching}
+      onRefresh={() => void departmentsQuery.refetch()}
     >
-      {isLoading ? (
+      {departmentsQuery.isLoading ? (
         <Text selectable style={styles.loading}>
           Memuat departemen...
         </Text>
