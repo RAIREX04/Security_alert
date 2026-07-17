@@ -17,20 +17,23 @@ function createSequelize() {
   const username = process.env.DB_USER;
   const password = process.env.DB_PASSWORD;
   const host = process.env.DB_HOST;
-  const port = Number(process.env.DB_PORT || 1433);
+  const instanceName = process.env.DB_INSTANCE_NAME?.trim();
+  const port = process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined;
   const dialect = process.env.DB_DIALECT || 'mssql';
+  const mssqlOptions = {
+    encrypt: false,
+    trustServerCertificate: true,
+    ...(instanceName ? { instanceName } : {}),
+  };
 
   return new Sequelize(database, username, password, {
     host,
-    port,
+    ...(port ? { port } : {}),
     dialect,
     logging: false,
     dialectOptions: dialect === 'mssql'
       ? {
-          options: {
-            encrypt: false,
-            trustServerCertificate: true,
-          },
+          options: mssqlOptions,
         }
       : {},
     pool: {

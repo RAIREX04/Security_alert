@@ -28,7 +28,9 @@ import { DashboardScreen as AdminDashboardScreen } from '../screens/admin/Dashbo
 import { EmployeesScreen } from '../screens/admin/EmployeesScreen';
 import { UsersScreen } from '../screens/admin/UsersScreen';
 import { HistoryScreen as AdminHistoryScreen } from '../screens/admin/HistoryScreen';
+import { OperationsScreen } from '../screens/admin/OperationsScreen';
 import { ProfileScreen as AdminProfileScreen } from '../screens/admin/ProfileScreen';
+import { ViewOnlyDashboardScreen } from '../screens/view-only/ViewOnlyDashboardScreen';
 import {
   CompletionProofScreen,
   CreateStaffScreen,
@@ -75,11 +77,19 @@ type AdminTabParamList = {
   AdminProfile: undefined;
 };
 
+type ViewOnlyTabParamList = {
+  ViewOnlyDashboard: undefined;
+  ViewOnlyOperations: undefined;
+  ViewOnlyHistory: undefined;
+  ViewOnlyProfile: undefined;
+};
+
 const rootStack = createNativeStackNavigator<RootStackParamList>();
 const authStack = createNativeStackNavigator<AuthStackParamList>();
 const userTabs = createBottomTabNavigator<UserTabParamList>();
 const staffTabs = createBottomTabNavigator<StaffTabParamList>();
 const adminTabs = createBottomTabNavigator<AdminTabParamList>();
+const viewOnlyTabs = createBottomTabNavigator<ViewOnlyTabParamList>();
 
 const asScreen = <T extends object,>(component: ComponentType<T>) =>
   component as unknown as ComponentType<any>;
@@ -148,7 +158,7 @@ function RoleTabs() {
     );
   }
 
-  if (user.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'superadmin') {
     return (
       <adminTabs.Navigator
         screenOptions={tabScreenOptions}
@@ -204,6 +214,53 @@ function RoleTabs() {
           }}
         />
       </adminTabs.Navigator>
+    );
+  }
+
+  if (user.role === 'view_only') {
+    return (
+      <viewOnlyTabs.Navigator screenOptions={tabScreenOptions}>
+        <viewOnlyTabs.Screen
+          name="ViewOnlyDashboard"
+          component={asScreen(ViewOnlyDashboardScreen)}
+          options={{
+            tabBarLabel: 'Monitor',
+            tabBarIcon: ({ color, size, focused }) => (
+              <TabIcon name="eye-outline" color={color} size={size} focused={focused} />
+            ),
+          }}
+        />
+        <viewOnlyTabs.Screen
+          name="ViewOnlyOperations"
+          component={asScreen(OperationsScreen)}
+          options={{
+            tabBarLabel: 'TV',
+            tabBarIcon: ({ color, size, focused }) => (
+              <TabIcon name="monitor-dashboard-outline" color={color} size={size} focused={focused} />
+            ),
+          }}
+        />
+        <viewOnlyTabs.Screen
+          name="ViewOnlyHistory"
+          component={asScreen(AdminHistoryScreen)}
+          options={{
+            tabBarLabel: 'Riwayat',
+            tabBarIcon: ({ color, size, focused }) => (
+              <TabIcon name="time-outline" color={color} size={size} focused={focused} />
+            ),
+          }}
+        />
+        <viewOnlyTabs.Screen
+          name="ViewOnlyProfile"
+          component={asScreen(AdminProfileScreen)}
+          options={{
+            tabBarLabel: 'Profil',
+            tabBarIcon: ({ color, size, focused }) => (
+              <TabIcon name="person-outline" color={color} size={size} focused={focused} />
+            ),
+          }}
+        />
+      </viewOnlyTabs.Navigator>
     );
   }
 
@@ -381,6 +438,8 @@ function TabIcon({
     'people-outline': 'account-group-outline',
     'person-circle-outline': 'account-circle-outline',
     'megaphone-outline': 'bullhorn-outline',
+    'monitor-dashboard-outline': 'monitor-dashboard',
+    'eye-outline': 'eye-outline',
   };
   const iconName = iconMap[name] ?? 'circle-outline';
 

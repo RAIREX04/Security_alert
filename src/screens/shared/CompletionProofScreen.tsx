@@ -43,7 +43,7 @@ export function CompletionProofScreen({ navigation, route }: any) {
   const isTargetDepartmentStaff =
     user?.role === 'staff' && user?.departmentId != null && Number(user.departmentId) === Number(report.departmentId);
   const isAssignedStaff = user?.userId != null && report.assignedStaffId === user.userId;
-  const canManage = user?.role === 'admin' || isTargetDepartmentStaff || isAssignedStaff;
+  const canManage = user?.role === 'admin' || user?.role === 'superadmin' || isTargetDepartmentStaff || isAssignedStaff;
 
   const handleLocation = async () => {
     setIsFetchingLocation(true);

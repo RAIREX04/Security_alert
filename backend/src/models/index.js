@@ -32,7 +32,7 @@ User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens', onDelete
 UserToken.belongsTo(User, { foreignKey: 'userId' });
 RefreshToken.belongsTo(User, { foreignKey: 'userId' });
 
-Department.hasMany(NotificationLog, { foreignKey: 'targetDepartmentId' });
+Department.hasMany(NotificationLog, { foreignKey: 'targetDepartmentId', onDelete: 'NO ACTION' });
 Report.hasMany(NotificationLog, { foreignKey: 'reportId' });
 User.hasMany(AuditLog, { foreignKey: 'actorUserId', onDelete: 'SET NULL' });
 

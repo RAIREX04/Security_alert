@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'staff' | 'user';
+export type UserRole = 'admin' | 'superadmin' | 'staff' | 'user' | 'view_only';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 export type ReportStatus = 'open' | 'progress' | 'close';
 

@@ -19,3 +19,16 @@ export async function getDepartmentStats(departmentId: number): Promise<Record<s
     return {};
   }
 }
+
+export async function updateDepartment(
+  departmentId: number,
+  payload: {
+    departmentCode: string;
+    departmentName: string;
+    description?: string | null;
+    isActive?: boolean;
+  },
+): Promise<Department> {
+  const response = await api.put<{ data: Department }>(`/departments/${departmentId}`, payload);
+  return response.data.data;
+}

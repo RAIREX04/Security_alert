@@ -27,6 +27,12 @@ const STATUS_FILTERS = ['all', 'open', 'progress', 'close'] as const;
 export function HistoryScreen({ navigation }: Props) {
   const { width } = useWindowDimensions();
   const compact = width < 380;
+  const routeNames = (navigation as any).getState?.().routeNames ?? [];
+  const dashboardRoute = routeNames.includes('AdminDashboard')
+    ? 'AdminDashboard'
+    : routeNames.includes('ViewOnlyDashboard')
+      ? 'ViewOnlyDashboard'
+      : null;
   const [selectedStatus, setSelectedStatus] = useState<(typeof STATUS_FILTERS)[number]>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -66,7 +72,7 @@ export function HistoryScreen({ navigation }: Props) {
     <Screen
       title="Riwayat"
       subtitle="Seluruh alert lintas departemen."
-      left={<HeaderBackButton onPress={() => navigation.navigate('AdminDashboard')} />}
+      left={dashboardRoute ? <HeaderBackButton onPress={() => (navigation as any).navigate(dashboardRoute)} /> : undefined}
       refreshing={reportsQuery.isFetching}
       onRefresh={() => void reportsQuery.refetch()}
     >

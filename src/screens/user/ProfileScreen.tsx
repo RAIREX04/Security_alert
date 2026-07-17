@@ -83,7 +83,7 @@ export function ProfileScreen({ navigation }: Props) {
               {profile.fullName}
             </Text>
             <Text selectable style={styles.role}>
-              {profile.role === 'admin' ? 'Admin' : profile.role === 'staff' ? 'Staff' : 'Pelapor'}
+              {profile.role === 'superadmin' ? 'Superadmin' : profile.role === 'admin' ? 'Admin' : profile.role === 'staff' ? 'Staff' : profile.role === 'view_only' ? 'View Only' : 'Pelapor'}
             </Text>
           </View>
           </View>

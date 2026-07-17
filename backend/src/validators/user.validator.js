@@ -15,7 +15,7 @@ const createUserBody = z.object({
   email: optionalEmail,
   pin: passwordSchema,
   roleId: z.coerce.number().int().positive().optional(),
-  roleName: z.enum(['admin', 'staff', 'user']).optional(),
+  roleName: z.enum(['superadmin', 'admin', 'staff', 'user', 'view_only']).optional(),
   departmentId: z.coerce.number().int().positive().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),
   photoUrl: z.string().optional().nullable(),

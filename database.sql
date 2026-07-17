@@ -264,6 +264,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_audit_logs_created_at'
     CREATE INDEX IX_audit_logs_created_at ON dbo.audit_logs (created_at);
 GO
 
+IF NOT EXISTS (SELECT 1 FROM dbo.roles WHERE role_name = 'superadmin')
+BEGIN
+    INSERT INTO dbo.roles (role_name, description) VALUES ('superadmin', 'SUPERADMIN');
+END
+GO
+
 IF NOT EXISTS (SELECT 1 FROM dbo.roles WHERE role_name = 'admin')
 BEGIN
     INSERT INTO dbo.roles (role_name, description) VALUES ('admin', 'ADMIN');
@@ -279,6 +285,12 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.roles WHERE role_name = 'user')
 BEGIN
     INSERT INTO dbo.roles (role_name, description) VALUES ('user', 'USER');
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.roles WHERE role_name = 'view_only')
+BEGIN
+    INSERT INTO dbo.roles (role_name, description) VALUES ('view_only', 'VIEW ONLY');
 END
 GO
 

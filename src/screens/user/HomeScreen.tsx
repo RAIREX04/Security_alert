@@ -7,6 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { DashboardDepartmentCard } from '../../components/DashboardDepartmentCard';
 import { UserScreenShell } from '../../components/UserScreenShell';
 import { useAuth } from '../../context/AuthContext';
+import { listDepartments } from '../../services/department-service';
 import { listReportsByUser } from '../../services/report-service';
 import { ecrTheme } from '../../theme/ecrTheme';
 import { departmentFallbacks } from '../../utils/department';
@@ -19,7 +20,7 @@ type Props = NativeStackScreenProps<UserStackParamList, 'UserHome'>;
 export function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const fullName = user?.fullName?.trim() || 'User';
-  const firstName = fullName.split(/\s+/)[0];
+  const displayName = fullName.replace(/\s+/g, ' ');
 
   const reportsQuery = useQuery({
     queryKey: ['reports', 'user-dashboard', user?.userId],
@@ -29,9 +30,16 @@ export function HomeScreen({ navigation }: Props) {
     refetchIntervalInBackground: true,
     staleTime: 0,
   });
+  const departmentsQuery = useQuery({
+    queryKey: ['departments', 'user-home'],
+    queryFn: listDepartments,
+  });
 
   const reports = reportsQuery.data ?? [];
-  const departments = useMemo(() => departmentFallbacks.slice(0, 4), []);
+  const departments = useMemo(() => {
+    const activeDepartments = (departmentsQuery.data ?? []).filter((department) => department.isActive);
+    return activeDepartments.length > 0 ? activeDepartments : departmentFallbacks.slice(0, 4);
+  }, [departmentsQuery.data]);
   const countsByDepartment = useMemo(() => departments.map((department) => ({ department })), [departments]);
   const recentReports = useMemo(
     () =>
@@ -46,8 +54,11 @@ export function HomeScreen({ navigation }: Props) {
       title=""
       subtitle={undefined}
       scrollable
-      refreshing={reportsQuery.isFetching}
-      onRefresh={() => void reportsQuery.refetch()}
+      refreshing={reportsQuery.isFetching || departmentsQuery.isFetching}
+      onRefresh={() => {
+        void reportsQuery.refetch();
+        void departmentsQuery.refetch();
+      }}
     >
       <View style={styles.body}>
         <View style={styles.hero}>
@@ -55,12 +66,12 @@ export function HomeScreen({ navigation }: Props) {
             {formatToday()}
           </Text>
 
-          <Text selectable style={styles.heroTitle}>
-            Hello, {firstName}.
+          <Text selectable style={styles.heroTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.82}>
+            Hello, {displayName}.
           </Text>
 
           <Text selectable style={styles.heroSubtitle}>
-            Pilih departemen untuk mengirim alert.
+            Pilih departemen awal, lalu tambahkan departemen lain di form alert.
           </Text>
 
           <View style={styles.accentStrip}>
@@ -119,7 +130,7 @@ function HistoryRow({ report, onPress }: { report: Report; onPress: () => void }
   const department = departmentFallbacks.find((item) => item.departmentId === report.departmentId) ?? departmentFallbacks[0];
   const theme = getStaffDepartmentTheme(department);
   const iconName = getDepartmentIconName(department.departmentCode);
-  const title = department.departmentName;
+  const title = report.department || department.departmentName;
   const subtitle = report.description || 'Alert baru dari user sedang menunggu penanganan.';
   const timeLabel = formatRelativeTime(report.createdAt);
 

@@ -5,8 +5,9 @@ const path = require('path');
 const multer = require('multer');
 
 const PORT = Number(process.env.MOCK_API_PORT || 3001);
-const HOST = '127.0.0.1';
-const BASE_URL = `http://${HOST}:${PORT}`;
+const HOST = process.env.MOCK_API_HOST || '127.0.0.1';
+const PUBLIC_URL = process.env.MOCK_API_PUBLIC_URL || `http://${HOST}:${PORT}`;
+const BASE_URL = PUBLIC_URL.replace(/\/+$/, '');
 const UPLOAD_DIR = path.resolve(__dirname, 'mock-uploads');
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -65,7 +66,23 @@ const users = [
     approvedAt: new Date().toISOString(),
     isActive: true,
     lastLoginAt: null,
-    role: 'admin',
+    role: 'superadmin',
+  },
+  {
+    userId: 5,
+    roleId: 5,
+    departmentId: null,
+    fullName: 'QA View Only',
+    username: 'qa.view',
+    email: 'qa.view@emergency.local',
+    phoneNumber: '081234567804',
+    photoUrl: null,
+    approvalStatus: 'approved',
+    approvedByUserId: 1,
+    approvedAt: new Date().toISOString(),
+    isActive: true,
+    lastLoginAt: null,
+    role: 'view_only',
   },
   {
     userId: 2,
@@ -149,7 +166,7 @@ const reports = [
   },
 ];
 
-let nextUserId = 5;
+let nextUserId = 6;
 let nextReportId = 2;
 let nextAttachmentId = 1;
 
@@ -266,7 +283,8 @@ function authRequired(req, res, next) {
 
 function roleRequired(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    const allowed = req.user?.role === 'superadmin' && roles.includes('admin') ? true : roles.includes(req.user?.role);
+    if (!req.user || !allowed) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
     next();
@@ -303,7 +321,7 @@ function visibleReports(currentUser, query = {}) {
       const haystack = `${report.description} ${report.incidentLocationText}`.toLowerCase();
       if (!haystack.includes(q)) return false;
     }
-    if (currentUser.role === 'admin') return true;
+    if (currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'view_only') return true;
     if (currentUser.role === 'staff') {
       return (
         report.departmentId === currentUser.departmentId ||
@@ -462,9 +480,11 @@ app.put('/api/users/me', authRequired, (req, res) => {
 app.get('/api/users/options', authRequired, roleRequired('admin'), (_req, res) => {
   return success(res, {
     roles: [
-      { roleId: 1, roleName: 'admin' },
+      { roleId: 1, roleName: 'superadmin' },
+      { roleId: 4, roleName: 'admin' },
       { roleId: 2, roleName: 'staff' },
       { roleId: 3, roleName: 'user' },
+      { roleId: 5, roleName: 'view_only' },
     ],
     departments: departments.map((department) => ({
       departmentId: department.departmentId,
@@ -490,7 +510,7 @@ app.get('/api/users/:id', authRequired, roleRequired('admin'), (req, res) => {
 app.post('/api/users', authRequired, roleRequired('admin'), (req, res) => {
   const body = req.body || {};
   const roleName = body.roleName || 'user';
-  const roleId = roleName === 'admin' ? 1 : roleName === 'staff' ? 2 : 3;
+  const roleId = roleName === 'superadmin' ? 1 : roleName === 'admin' ? 4 : roleName === 'staff' ? 2 : roleName === 'view_only' ? 5 : 3;
   const user = {
     userId: nextUserId++,
     roleId,
@@ -680,10 +700,11 @@ app.patch('/api/reports/:id/rate', authRequired, (req, res) => {
   const report = reports.find((item) => item.reportId === Number(req.params.id));
   if (!report) return res.status(404).json({ success: false, message: 'Report tidak ditemukan' });
   const reviewerType = req.body.reviewerType || (report.reporterUserId === req.user.userId ? 'requester' : 'staff');
-  if (reviewerType === 'requester' && req.user.role !== 'admin' && report.reporterUserId !== req.user.userId) {
+  const isAdminRole = req.user.role === 'admin' || req.user.role === 'superadmin';
+  if (reviewerType === 'requester' && !isAdminRole && report.reporterUserId !== req.user.userId) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
-  if (reviewerType === 'staff' && req.user.role !== 'admin' && report.assignedStaffId !== req.user.userId) {
+  if (reviewerType === 'staff' && !isAdminRole && report.assignedStaffId !== req.user.userId) {
     return res.status(403).json({ success: false, message: 'Forbidden' });
   }
   if (reviewerType === 'requester') {

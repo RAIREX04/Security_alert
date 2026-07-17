@@ -3,7 +3,7 @@ const { DEFAULT_DEPARTMENTS } = require('../utils/department');
 const { Role, Department, User } = require('../models');
 
 async function ensureSeedData() {
-  const roleNames = ['admin', 'staff', 'user'];
+  const roleNames = ['superadmin', 'admin', 'staff', 'user', 'view_only'];
   for (const roleName of roleNames) {
     await Role.findOrCreate({
       where: { roleName },
@@ -23,7 +23,7 @@ async function ensureSeedData() {
 
   const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@emergency.local';
   const adminPin = process.env.DEFAULT_ADMIN_PIN || '123456';
-  const [adminRole] = await Role.findAll({ where: { roleName: 'admin' }, limit: 1 });
+  const [adminRole] = await Role.findAll({ where: { roleName: 'superadmin' }, limit: 1 });
   if (!adminRole) return;
 
   const adminUser = await User.findOne({ where: { email: adminEmail } });

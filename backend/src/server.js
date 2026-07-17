@@ -13,9 +13,10 @@ async function bootstrap() {
 
     const app = createApp();
     const port = Number(process.env.PORT || 3000);
+    const host = process.env.LOCAL_BACKEND_HOST || process.env.HOST || '127.0.0.1';
 
-    app.listen(port, () => {
-      logInfo('Backend started', { port });
+    app.listen(port, host, () => {
+      logInfo('Backend started', { host, port, baseUrl: `http://${host}:${port}` });
     });
   } catch (error) {
     logError('Backend bootstrap failed', { error: error.message, stack: error.stack });

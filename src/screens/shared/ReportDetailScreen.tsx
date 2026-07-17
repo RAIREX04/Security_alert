@@ -84,7 +84,8 @@ export function ReportDetailScreen({ navigation, route }: any) {
   const isTargetDepartmentStaff =
     user?.role === 'staff' && user?.departmentId != null && Number(user.departmentId) === Number(report.departmentId);
   const isAssignedStaff = user?.userId != null && report.assignedStaffId === user.userId;
-  const canManage = user?.role === 'admin' || isTargetDepartmentStaff || isAssignedStaff;
+  const isAdminRole = user?.role === 'admin' || user?.role === 'superadmin';
+  const canManage = isAdminRole || isTargetDepartmentStaff || isAssignedStaff;
   const isClose = report.status === 'close';
   const isProgress = report.status === 'progress';
   const isHelpRequest = report.sourceDepartmentId != null && report.sourceDepartmentId !== report.departmentId;
@@ -222,12 +223,21 @@ export function ReportDetailScreen({ navigation, route }: any) {
             />
           ) : null}
           {report.status === 'progress' ? (
+            <>
+              {!report.arrivedAt ? (
+                <PrimaryButton
+                  title={action.isPending ? 'Mencatat tiba...' : 'Tandai Tiba / Arrived'}
+                  onPress={() => action.mutate('arrived')}
+                  disabled={action.isPending}
+                />
+              ) : null}
             <PrimaryButton
               title="Selesaikan Alert"
               onPress={() => navigation.navigate('CompletionProof', { report })}
             />
+            </>
           ) : null}
-          {user?.role === 'admin' ? (
+          {isAdminRole ? (
             <PrimaryButton
               title="Hapus Report"
               style={styles.danger}

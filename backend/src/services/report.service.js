@@ -90,7 +90,7 @@ async function resolveReportById(id) {
 
 function canViewReport(user, report) {
   if (!user || !report) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'admin' || user.role === 'superadmin' || user.role === 'view_only') return true;
   if (user.role === 'staff') {
     return report.departmentId === user.departmentId ||
       report.assignedStaffId === user.userId ||
@@ -102,7 +102,7 @@ function canViewReport(user, report) {
 
 function canManageReport(user, report) {
   if (!user || !report) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'admin' || user.role === 'superadmin') return true;
   if (user.role === 'staff') {
     return report.departmentId === user.departmentId || report.assignedStaffId === user.userId;
   }
@@ -141,7 +141,7 @@ async function listReports(currentUser, query = {}) {
       { sourceDepartmentId: currentUser.departmentId },
       ],
     });
-  } else if (currentUser.role !== 'admin') {
+  } else if (!['admin', 'superadmin', 'view_only'].includes(currentUser.role)) {
     where.reporterUserId = currentUserId;
   }
 
@@ -424,7 +424,7 @@ async function reportsByDepartment(currentUser, departmentId) {
 
 async function reportsByUser(currentUser, userId) {
   const currentUserId = getActorId(currentUser);
-  if (currentUser.role !== 'admin' && currentUserId !== Number(userId)) {
+  if (!['admin', 'superadmin', 'view_only'].includes(currentUser.role) && currentUserId !== Number(userId)) {
     return [];
   }
   const reports = await Report.findAll({
@@ -443,7 +443,7 @@ async function reportsByUser(currentUser, userId) {
 
 async function reportsByStaff(currentUser, staffId) {
   const currentUserId = getActorId(currentUser);
-  if (currentUser.role !== 'admin' && currentUserId !== Number(staffId)) {
+  if (!['admin', 'superadmin', 'view_only'].includes(currentUser.role) && currentUserId !== Number(staffId)) {
     return [];
   }
   const reports = await Report.findAll({
@@ -457,7 +457,7 @@ async function reportsByStaff(currentUser, staffId) {
     ],
     order: [['reportId', 'DESC']],
   });
-  if (currentUser.role === 'staff' && currentUserId !== Number(staffId) && currentUser.role !== 'admin') {
+  if (currentUser.role === 'staff' && currentUserId !== Number(staffId)) {
     return [];
   }
   return reports.map(mapReport);

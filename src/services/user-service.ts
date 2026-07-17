@@ -33,7 +33,7 @@ export async function createUser(payload: {
   username: string;
   email?: string | null;
   pin: string;
-  roleName: 'staff' | 'user';
+  roleName: 'superadmin' | 'admin' | 'staff' | 'user' | 'view_only';
   departmentId?: number | null;
   phoneNumber?: string | null;
   photoUrl?: string | null;

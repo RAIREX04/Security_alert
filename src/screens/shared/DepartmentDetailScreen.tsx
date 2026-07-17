@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { EmptyState } from '../../components/EmptyState';
 import { HeaderBackButton } from '../../components/HeaderBackButton';
@@ -9,19 +9,55 @@ import { ReportCard } from '../../components/ReportCard';
 import { Screen } from '../../components/Screen';
 import { SectionCard } from '../../components/SectionCard';
 import { UserCard } from '../../components/UserCard';
-import { getDepartmentStats } from '../../services/department-service';
+import { getDepartmentStats, updateDepartment } from '../../services/department-service';
 import { listReports } from '../../services/report-service';
 import { listUsers } from '../../services/user-service';
 import { getAverageRating, getAverageResolution, getDepartmentIconName, getStaffDepartmentTheme } from '../../utils/staff';
 import type { Department } from '../../types/models';
 
 export function DepartmentDetailScreen({ navigation, route }: any) {
-  const department: Department = route.params.department;
+  const [department, setDepartment] = useState<Department>(route.params.department);
   const theme = getStaffDepartmentTheme(department);
   const iconName = getDepartmentIconName(department.departmentCode);
   const queryClient = useQueryClient();
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
   const [expandedHistoryStaffId, setExpandedHistoryStaffId] = useState<number | null>(null);
+  const [isEditingDepartment, setIsEditingDepartment] = useState(false);
+  const [form, setForm] = useState({
+    departmentCode: department.departmentCode,
+    departmentName: department.departmentName,
+    description: department.description ?? '',
+    isActive: department.isActive,
+  });
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      updateDepartment(department.departmentId, {
+        departmentCode: form.departmentCode.trim(),
+        departmentName: form.departmentName.trim(),
+        description: form.description.trim() || null,
+        isActive: form.isActive,
+      }),
+    onSuccess: async (updated) => {
+      setDepartment(updated);
+      setForm({
+        departmentCode: updated.departmentCode,
+        departmentName: updated.departmentName,
+        description: updated.description ?? '',
+        isActive: updated.isActive,
+      });
+      queryClient.setQueryData<Department[]>(['departments', 'admin-dashboard'], (current) =>
+        current?.map((item) => (item.departmentId === updated.departmentId ? updated : item)) ?? current,
+      );
+      await queryClient.invalidateQueries({ queryKey: ['departments'] });
+      setIsEditingDepartment(false);
+      setNotice('Departemen berhasil diperbarui.');
+    },
+    onError: (error) => {
+      setNotice(error instanceof Error ? error.message : 'Departemen gagal diperbarui.');
+    },
+  });
 
   const statsQuery = useQuery({
     queryKey: ['department-stats', department.departmentId],
@@ -87,6 +123,26 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
   const maxFlow = Math.max(openReports, progressReports, closeReports, 1);
   const refetchAll = async () => {
     await Promise.all([statsQuery.refetch(), staffQuery.refetch(), reportQuery.refetch()]);
+  };
+
+  const handleSaveDepartment = () => {
+    if (!form.departmentCode.trim() || !form.departmentName.trim()) {
+      setNotice('Kode dan nama departemen wajib diisi.');
+      return;
+    }
+
+    updateMutation.mutate();
+  };
+
+  const handleToggleEditDepartment = () => {
+    setNotice(null);
+    setForm({
+      departmentCode: department.departmentCode,
+      departmentName: department.departmentName,
+      description: department.description ?? '',
+      isActive: department.isActive,
+    });
+    setIsEditingDepartment((current) => !current);
   };
 
   return (
@@ -307,6 +363,109 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
       </SectionCard>
 
       <SectionCard>
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionHeaderText}>
+            <Text selectable style={styles.sectionTitle}>
+              Atur Departemen
+            </Text>
+            <Text selectable style={styles.sectionSubtitle}>
+              Ubah nama, kode, deskripsi, dan status departemen.
+            </Text>
+          </View>
+          <Pressable
+            onPress={handleToggleEditDepartment}
+            accessibilityRole="button"
+            accessibilityLabel={isEditingDepartment ? 'Tutup edit departemen' : 'Edit departemen'}
+            style={({ pressed }) => [styles.editIconButton, pressed && styles.staffSummaryPressed]}
+          >
+            <MaterialCommunityIcons
+              name={isEditingDepartment ? 'close' : 'pencil-outline'}
+              size={23}
+              color="#1D4ED8"
+            />
+          </Pressable>
+        </View>
+
+        {notice ? (
+          <View style={styles.noticeBox}>
+            <Text selectable style={styles.noticeText}>
+              {notice}
+            </Text>
+          </View>
+        ) : null}
+
+        {isEditingDepartment ? (
+          <View style={styles.formStack}>
+            <DepartmentField
+              label="Nama departemen"
+              value={form.departmentName}
+              onChangeText={(departmentName) => setForm((current) => ({ ...current, departmentName }))}
+            />
+            <DepartmentField
+              label="Kode departemen"
+              value={form.departmentCode}
+              onChangeText={(departmentCode) => setForm((current) => ({ ...current, departmentCode }))}
+            />
+            <DepartmentField
+              label="Deskripsi"
+              value={form.description}
+              multiline
+              onChangeText={(description) => setForm((current) => ({ ...current, description }))}
+            />
+
+            <Pressable
+              onPress={() => setForm((current) => ({ ...current, isActive: !current.isActive }))}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: form.isActive }}
+              style={({ pressed }) => [styles.activeToggle, pressed && styles.staffSummaryPressed]}
+            >
+              <View style={styles.activeToggleText}>
+                <Text selectable style={styles.activeToggleTitle}>
+                  Status departemen
+                </Text>
+                <Text selectable style={styles.activeToggleSubtitle}>
+                  {form.isActive ? 'Aktif dan tampil di aplikasi' : 'Nonaktif dari daftar pilihan'}
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name={form.isActive ? 'toggle-switch' : 'toggle-switch-off-outline'}
+                size={42}
+                color={form.isActive ? '#16A34A' : '#94A3B8'}
+              />
+            </Pressable>
+
+            <Pressable
+              onPress={handleSaveDepartment}
+              disabled={updateMutation.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Simpan perubahan departemen"
+              style={({ pressed }) => [
+                styles.saveButton,
+                updateMutation.isPending && styles.saveButtonDisabled,
+                pressed && !updateMutation.isPending && styles.staffSummaryPressed,
+              ]}
+            >
+              <Text style={styles.saveButtonText}>
+                {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.departmentPreview}>
+            <DepartmentInfoRow label="Nama" value={department.departmentName} />
+            <DepartmentInfoRow label="Kode" value={department.departmentCode} />
+            <DepartmentInfoRow label="Deskripsi" value={department.description ?? '-'} />
+            <View style={styles.departmentStatusPreview}>
+              <View style={[styles.statusDot, { backgroundColor: department.isActive ? '#16A34A' : '#94A3B8' }]} />
+              <Text selectable style={styles.departmentStatusText}>
+                {department.isActive ? 'Aktif di aplikasi' : 'Nonaktif dari daftar pilihan'}
+              </Text>
+            </View>
+          </View>
+        )}
+      </SectionCard>
+
+      <SectionCard>
         <Text style={styles.sectionTitle}>Alert Departemen</Text>
         {reports.length ? (
           <View style={styles.list}>
@@ -321,6 +480,49 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
     </Screen>
   );
 }
+
+function DepartmentField({
+  label,
+  value,
+  multiline,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  multiline?: boolean;
+  onChangeText: (text: string) => void;
+}) {
+  return (
+    <View style={styles.inputGroup}>
+      <Text selectable style={styles.inputLabel}>
+        {label}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        multiline={multiline}
+        placeholder={label}
+        placeholderTextColor="#94A3B8"
+        textAlignVertical={multiline ? 'top' : 'center'}
+        style={[styles.input, multiline && styles.inputMultiline]}
+      />
+    </View>
+  );
+}
+
+function DepartmentInfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.departmentInfoRow}>
+      <Text selectable style={styles.departmentInfoLabel}>
+        {label}
+      </Text>
+      <Text selectable style={styles.departmentInfoValue}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 function QuickStat({
   label,
   value,
@@ -477,6 +679,149 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginBottom: 10,
     marginTop: 4,
+  },
+  sectionHeaderRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  sectionHeaderText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  editIconButton: {
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
+  },
+  noticeBox: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  noticeText: {
+    color: '#1D4ED8',
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  formStack: {
+    gap: 12,
+  },
+  inputGroup: {
+    gap: 7,
+  },
+  inputLabel: {
+    color: '#334155',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE6F5',
+    borderRadius: 16,
+    borderWidth: 1,
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '700',
+    minHeight: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  inputMultiline: {
+    minHeight: 92,
+    lineHeight: 21,
+  },
+  activeToggle: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#DCE6F5',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  activeToggleText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  activeToggleTitle: {
+    color: '#0F2C57',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  activeToggleSubtitle: {
+    color: '#667085',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  saveButton: {
+    alignItems: 'center',
+    backgroundColor: '#1D4ED8',
+    borderRadius: 18,
+    minHeight: 54,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  saveButtonDisabled: {
+    opacity: 0.65,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  departmentPreview: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#DCE6F5',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    padding: 14,
+  },
+  departmentInfoRow: {
+    gap: 4,
+  },
+  departmentInfoLabel: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  departmentInfoValue: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 19,
+  },
+  departmentStatusPreview: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 2,
+  },
+  statusDot: {
+    borderRadius: 999,
+    height: 10,
+    width: 10,
+  },
+  departmentStatusText: {
+    color: '#475569',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '800',
   },
   chartStack: {
     gap: 14,

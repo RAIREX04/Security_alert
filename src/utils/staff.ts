@@ -78,7 +78,12 @@ export function getDepartmentForReport(report: Pick<Report, 'departmentId' | 'de
 
 export function getStaffDepartmentTheme(department?: Department | null): StaffDepartmentTheme {
   const key = department?.departmentCode ? normalizeDepartmentName(department.departmentCode) : 'ALERT SECURITY';
-  return themeByCode[key] ?? themeByCode['ALERT SECURITY'];
+  const baseTheme = themeByCode[key] ?? themeByCode['ALERT SECURITY'];
+  return {
+    ...baseTheme,
+    color: department?.color || baseTheme.color,
+    icon: department?.icon || baseTheme.icon,
+  };
 }
 
 export function getDepartmentGlyph(code?: string | null) {

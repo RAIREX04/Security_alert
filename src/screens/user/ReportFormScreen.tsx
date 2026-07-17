@@ -19,6 +19,7 @@ import Constants from 'expo-constants';
 import * as Network from 'expo-network';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../../context/AuthContext';
 import { isNetworkFailure, submitAlertWithOfflineFallback } from '../../services/offline-report-queue';
@@ -31,12 +32,13 @@ import {
 import { AppNoticeModal } from '../../components/AppNoticeModal';
 import { LocationPreviewCard } from '../../components/LocationPreviewCard';
 import { getApiErrorMessage } from '../../config/api';
+import { listDepartments } from '../../services/department-service';
 import { uploadReportPhoto } from '../../services/upload-service';
 import { PhotoSourceSheet } from '../../components/PhotoSourceSheet';
 import { departmentFallbacks } from '../../utils/department';
 import { getQueuedReportSubmissionCount } from '../../services/offline-report-queue';
 import { openLocationInMaps } from '../../utils/maps';
-import { getDepartmentBadgeLabel } from '../../utils/staff';
+import { getDepartmentBadgeLabel, getDepartmentIconName } from '../../utils/staff';
 import type { UserStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<UserStackParamList, 'ReportForm'>;
@@ -59,7 +61,7 @@ type ExpoSpeechRecognitionModuleType = {
 export function ReportFormScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const initialDepartmentId = route.params?.departmentId ?? departmentFallbacks[0].departmentId;
-  const [departmentId] = useState(initialDepartmentId);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState<number[]>([initialDepartmentId]);
   const [description, setDescription] = useState('');
   const [locationLabel, setLocationLabel] = useState('');
   const [locationAddress, setLocationAddress] = useState<string | null>(null);
@@ -87,11 +89,24 @@ export function ReportFormScreen({ navigation, route }: Props) {
   const descriptionInputRef = useRef<TextInput>(null);
   const isExpoGo = Constants.appOwnership === 'expo';
   const networkState = Network.useNetworkState();
+  const departmentsQuery = useQuery({
+    queryKey: ['departments', 'report-form'],
+    queryFn: listDepartments,
+  });
+  const departments = useMemo(() => {
+    const activeDepartments = (departmentsQuery.data ?? []).filter((department) => department.isActive);
+    return activeDepartments.length > 0 ? activeDepartments : departmentFallbacks;
+  }, [departmentsQuery.data]);
 
-  const selectedDepartment = useMemo(
-    () => departmentFallbacks.find((item) => item.departmentId === departmentId) ?? departmentFallbacks[0],
-    [departmentId],
+  const selectedDepartments = useMemo(
+    () => departments.filter((item) => selectedDepartmentIds.includes(item.departmentId)),
+    [departments, selectedDepartmentIds],
   );
+  const selectedDepartment = useMemo(
+    () => selectedDepartments[0] ?? departmentFallbacks[0],
+    [selectedDepartments],
+  );
+  const selectedDepartmentNames = selectedDepartments.map((department) => department.departmentName).join(', ');
 
   useEffect(() => {
     void handleLocation();
@@ -204,7 +219,22 @@ export function ReportFormScreen({ navigation, route }: Props) {
     });
   };
 
+  const toggleDepartment = (nextDepartmentId: number) => {
+    setSelectedDepartmentIds((current) => {
+      if (current.includes(nextDepartmentId)) {
+        return current.length > 1 ? current.filter((item) => item !== nextDepartmentId) : current;
+      }
+
+      return [...current, nextDepartmentId];
+    });
+  };
+
   const handleSubmit = async () => {
+    if (selectedDepartmentIds.length === 0) {
+      setNotice({ title: 'Validasi', message: 'Pilih minimal satu departemen tujuan.', tone: 'warning' });
+      return;
+    }
+
     if (!description.trim()) {
       setNotice({ title: 'Validasi', message: 'Deskripsi kejadian wajib diisi.', tone: 'warning' });
       return;
@@ -212,24 +242,29 @@ export function ReportFormScreen({ navigation, route }: Props) {
 
     setIsSubmitting(true);
     try {
-      const result = await submitAlertWithOfflineFallback({
-        departmentId,
-        description,
-        incidentLocationText: locationLabel || 'Lokasi belum diambil',
-        incidentLatitude: latitude,
-        incidentLongitude: longitude,
-        sourceDepartmentId: user?.departmentId ?? undefined,
-        attachment: photoPreviewUri
-          ? {
-              uri: photoAsset?.uri ?? photoPreviewUri,
-              fileName: photoName ?? photoAsset?.fileName ?? 'incident.jpg',
-              mimeType: photoAsset?.mimeType ?? null,
-              fileSize: photoAsset?.fileSize ?? null,
-              uploadedFileUrl: photoUrl,
-            }
-          : null,
-      });
-      setCreatedReportId(result.kind === 'sent' ? result.report.reportId : null);
+      const results = await Promise.all(
+        selectedDepartmentIds.map((targetDepartmentId) =>
+          submitAlertWithOfflineFallback({
+            departmentId: targetDepartmentId,
+            description,
+            incidentLocationText: locationLabel || 'Lokasi belum diambil',
+            incidentLatitude: latitude,
+            incidentLongitude: longitude,
+            sourceDepartmentId: user?.departmentId ?? undefined,
+            attachment: photoPreviewUri
+              ? {
+                  uri: photoAsset?.uri ?? photoPreviewUri,
+                  fileName: photoName ?? photoAsset?.fileName ?? 'incident.jpg',
+                  mimeType: photoAsset?.mimeType ?? null,
+                  fileSize: photoAsset?.fileSize ?? null,
+                  uploadedFileUrl: photoUrl,
+                }
+              : null,
+          }),
+        ),
+      );
+      const sentReports = results.filter((result) => result.kind === 'sent');
+      setCreatedReportId(sentReports.length > 0 ? sentReports[0].report.reportId : null);
       void getQueuedReportSubmissionCount()
         .then((count) => setQueuedReportCount(count))
         .catch(() => {});
@@ -283,7 +318,7 @@ export function ReportFormScreen({ navigation, route }: Props) {
                 <Text style={styles.backButtonText}>←</Text>
               </Pressable>
               <Text selectable style={styles.appBarTitle}>
-                {selectedDepartment.departmentName}
+                Alert Departemen
               </Text>
               <View style={styles.appBarSpacer} />
             </View>
@@ -308,11 +343,60 @@ export function ReportFormScreen({ navigation, route }: Props) {
               </View>
               <View style={styles.heroBody}>
                 <Text selectable style={styles.heroTitle}>
-                  {selectedDepartment.departmentName}
+                  {selectedDepartments.length > 1 ? `${selectedDepartments.length} departemen dipanggil` : selectedDepartment.departmentName}
                 </Text>
                 <Text selectable style={styles.heroSubtitle}>
-                  {selectedDepartment.description ?? 'Departemen emergency'}
+                  {selectedDepartments.length > 1 ? selectedDepartmentNames : selectedDepartment.description ?? 'Departemen emergency'}
                 </Text>
+              </View>
+            </View>
+
+            <View style={styles.sectionCard}>
+              <Text selectable style={styles.sectionTitle}>
+                Pilih departemen tujuan
+              </Text>
+              <Text selectable style={styles.sectionMeta}>
+                Centang satu atau beberapa departemen yang perlu menerima alert ini.
+              </Text>
+
+              <View style={styles.departmentPicker}>
+                {departments.map((department) => {
+                  const selected = selectedDepartmentIds.includes(department.departmentId);
+                  const departmentIconName = getDepartmentIconName(department.departmentCode);
+                  return (
+                    <Pressable
+                      key={department.departmentId}
+                      onPress={() => toggleDepartment(department.departmentId)}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={`Pilih ${department.departmentName}`}
+                      style={({ pressed }) => [
+                        styles.departmentChoice,
+                        {
+                          borderColor: selected ? department.color ?? '#1D4ED8' : '#D9E2EE',
+                          backgroundColor: selected ? tint(department.color ?? '#1D4ED8', 0.1) : '#FFFFFF',
+                        },
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <View style={[styles.departmentChoiceIcon, { backgroundColor: tint(department.color ?? '#1D4ED8', selected ? 0.18 : 0.08) }]}>
+                        <MaterialCommunityIcons
+                          name={departmentIconName as any}
+                          size={24}
+                          color={department.color ?? '#1D4ED8'}
+                        />
+                      </View>
+                      <Text selectable style={[styles.departmentChoiceText, { color: selected ? department.color ?? '#1D4ED8' : '#475467' }]}>
+                        {department.departmentName}
+                      </Text>
+                      <MaterialCommunityIcons
+                        name={selected ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                        size={22}
+                        color={selected ? department.color ?? '#1D4ED8' : '#98A2B3'}
+                      />
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
@@ -483,7 +567,11 @@ export function ReportFormScreen({ navigation, route }: Props) {
                 ]}
               >
                 <Text style={styles.submitButtonText}>
-                  {isSubmitting ? 'Mengirim alert...' : isUploadingPhoto ? 'Mengunggah foto...' : 'Kirim alert'}
+                  {isSubmitting
+                    ? 'Mengirim alert...'
+                    : isUploadingPhoto
+                      ? 'Mengunggah foto...'
+                      : `Kirim alert ke ${selectedDepartmentIds.length} departemen`}
                 </Text>
               </Pressable>
             </View>
@@ -501,7 +589,7 @@ export function ReportFormScreen({ navigation, route }: Props) {
         title={createdReportId ? 'Report terkirim' : 'Alert disimpan offline'}
         message={
           createdReportId
-            ? `Report #${createdReportId} berhasil dibuat dan tersimpan.`
+            ? `Alert berhasil dikirim ke ${selectedDepartmentIds.length} departemen.`
             : 'Tidak ada jaringan saat ini. Alert disimpan dan akan otomatis dikirim saat sinyal kembali.'
         }
         onAction={() => {
@@ -862,6 +950,32 @@ const styles = StyleSheet.create({
   sectionMeta: {
     color: '#667085',
     fontSize: 14,
+  },
+  departmentPicker: {
+    gap: 10,
+  },
+  departmentChoice: {
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 1.2,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 68,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  departmentChoiceIcon: {
+    alignItems: 'center',
+    borderRadius: 16,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  departmentChoiceText: {
+    flex: 1,
+    fontSize: 15.5,
+    fontWeight: '900',
+    lineHeight: 20,
   },
   noticeCard: {
     alignItems: 'center',

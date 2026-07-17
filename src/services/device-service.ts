@@ -19,7 +19,7 @@ export async function pickImageAsync() {
 
   const result = await ImagePicker.launchImageLibraryAsync({
     quality: 0.85,
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'],
   });
 
   if (result.canceled || !result.assets.length) {
