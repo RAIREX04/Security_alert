@@ -11,6 +11,7 @@ import { MetricCard } from '../../components/MetricCard';
 import { ReportCard } from '../../components/ReportCard';
 import { Screen } from '../../components/Screen';
 import { SectionCard } from '../../components/SectionCard';
+import { listDepartments } from '../../services/department-service';
 import { listReports } from '../../services/report-service';
 import {
   getPageCount,
@@ -34,20 +35,27 @@ export function HistoryScreen({ navigation }: Props) {
       ? 'ViewOnlyDashboard'
       : null;
   const [selectedStatus, setSelectedStatus] = useState<(typeof STATUS_FILTERS)[number]>('all');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const reportsQuery = useQuery({
     queryKey: ['reports', 'admin-history'],
     queryFn: () => listReports(),
   });
+  const departmentsQuery = useQuery({
+    queryKey: ['departments', 'admin-history'],
+    queryFn: listDepartments,
+  });
 
   const reports = reportsQuery.data ?? [];
+  const departments = departmentsQuery.data ?? [];
   const filteredReports = useMemo(() => {
     return reports.filter((item) => {
       const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
-      return matchesStatus && matchesReportSearch(item, searchQuery);
+      const matchesDepartment = selectedDepartmentId === 'all' || item.departmentId === selectedDepartmentId;
+      return matchesStatus && matchesDepartment && matchesReportSearch(item, searchQuery);
     });
-  }, [reports, searchQuery, selectedStatus]);
+  }, [reports, searchQuery, selectedDepartmentId, selectedStatus]);
   const pageCount = getPageCount(filteredReports.length);
   const visibleReports = useMemo(
     () => getPaginatedItems(filteredReports, page, HISTORY_PAGE_SIZE),
@@ -60,7 +68,7 @@ export function HistoryScreen({ navigation }: Props) {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedStatus]);
+  }, [searchQuery, selectedDepartmentId, selectedStatus]);
 
   useEffect(() => {
     if (page > pageCount) {
@@ -73,8 +81,11 @@ export function HistoryScreen({ navigation }: Props) {
       title="Riwayat"
       subtitle="Seluruh alert lintas departemen."
       left={dashboardRoute ? <HeaderBackButton onPress={() => (navigation as any).navigate(dashboardRoute)} /> : undefined}
-      refreshing={reportsQuery.isFetching}
-      onRefresh={() => void reportsQuery.refetch()}
+      refreshing={reportsQuery.isFetching || departmentsQuery.isFetching}
+      onRefresh={() => {
+        void reportsQuery.refetch();
+        void departmentsQuery.refetch();
+      }}
     >
       <SectionCard tone="soft">
         <Text selectable style={styles.sectionLabel}>
@@ -127,6 +138,44 @@ export function HistoryScreen({ navigation }: Props) {
 
       <SectionCard>
         <View style={styles.filterHeader}>
+          <Text style={styles.filterLabel}>Filter departemen</Text>
+          <Text selectable style={styles.filterCaption}>
+            {selectedDepartmentId === 'all'
+              ? 'Semua departemen'
+              : departments.find((department) => department.departmentId === selectedDepartmentId)?.departmentName ?? 'Departemen'}
+          </Text>
+        </View>
+        <View style={styles.filterRow}>
+          <Pressable
+            onPress={() => setSelectedDepartmentId('all')}
+            style={[
+              styles.filterChip,
+              selectedDepartmentId === 'all' && styles.departmentChipActive,
+            ]}
+          >
+            <Text style={[styles.filterText, selectedDepartmentId === 'all' && styles.departmentTextActive]}>
+              Semua
+            </Text>
+          </Pressable>
+          {departments.map((department) => {
+            const active = selectedDepartmentId === department.departmentId;
+            return (
+              <Pressable
+                key={department.departmentId}
+                onPress={() => setSelectedDepartmentId(department.departmentId)}
+                style={[styles.filterChip, active && styles.departmentChipActive]}
+              >
+                <Text style={[styles.filterText, active && styles.departmentTextActive]} numberOfLines={1}>
+                  {department.departmentName}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </SectionCard>
+
+      <SectionCard>
+        <View style={styles.filterHeader}>
           <Text selectable style={styles.filterLabel}>
             Cari report
           </Text>
@@ -167,6 +216,8 @@ export function HistoryScreen({ navigation }: Props) {
           description={
             searchQuery.trim()
               ? 'Tidak ada report yang cocok dengan pencarian.'
+              : selectedDepartmentId !== 'all'
+              ? 'Tidak ada report pada departemen yang dipilih.'
               : selectedStatus === 'all'
               ? 'Semua report akan tampil di sini.'
               : 'Tidak ada report pada status yang dipilih.'
@@ -262,6 +313,13 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: '#B91C1C',
+  },
+  departmentChipActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  departmentTextActive: {
+    color: '#1D4ED8',
   },
   searchInputRow: {
     alignItems: 'center',

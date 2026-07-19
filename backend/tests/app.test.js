@@ -8,6 +8,7 @@ process.env.DB_USER = process.env.DB_USER || 'sa';
 process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'YourStrong!Passw0rd';
 
 const { createApp } = require('../src/app');
+const { FALLBACK_HOST, resolveListenHost } = require('../src/config/listen-host');
 
 async function startApp() {
   const app = createApp();
@@ -44,4 +45,19 @@ test('docs.json is exposed for swagger clients', async (t) => {
   assert.equal(response.status, 200);
   assert.equal(json.openapi, '3.0.3');
   assert.ok(Array.isArray(json.tags));
+});
+
+test('server falls back when configured host is not assigned locally', () => {
+  const resolved = resolveListenHost('192.0.2.123');
+
+  assert.equal(resolved.host, FALLBACK_HOST);
+  assert.equal(resolved.configuredHost, '192.0.2.123');
+  assert.equal(resolved.didFallback, true);
+});
+
+test('server keeps localhost as a bindable host', () => {
+  const resolved = resolveListenHost('127.0.0.1');
+
+  assert.equal(resolved.host, '127.0.0.1');
+  assert.equal(resolved.didFallback, false);
 });

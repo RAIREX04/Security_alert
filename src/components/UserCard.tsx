@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { User } from '../types/models';
+import { ProfileAvatar } from './ProfileAvatar';
 import { StatusBadge } from './StatusBadge';
 import { ecrTheme } from '../theme/ecrTheme';
 
@@ -28,11 +29,15 @@ export function UserCard({ user, subtitle, onPress }: UserCardProps) {
         pressed && onPress ? styles.pressed : null,
       ]}
     >
-      <View style={styles.avatar}>
-        <Text selectable style={styles.avatarText}>
-          {user.fullName.charAt(0).toUpperCase()}
-        </Text>
-      </View>
+      <ProfileAvatar
+        name={user.fullName}
+        photoUrl={user.photoUrl}
+        size={48}
+        accessibilityLabel={`${user.fullName}, foto profil`}
+        containerStyle={styles.avatar}
+        imageStyle={styles.avatarImage}
+        fallbackStyle={styles.avatarText}
+      />
       <View style={styles.body}>
         <Text selectable style={styles.title} numberOfLines={2}>
           {user.fullName}
@@ -76,7 +81,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 48,
     justifyContent: 'center',
+    overflow: 'hidden',
     width: 48,
+  },
+  avatarImage: {
+    borderRadius: ecrTheme.radii.md,
   },
   avatarText: {
     color: ecrTheme.colors.pertaminaBlue,

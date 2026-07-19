@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { EmptyState } from '../../components/EmptyState';
 import { HeaderBackButton } from '../../components/HeaderBackButton';
+import { HistoryPagination } from '../../components/HistoryPagination';
 import { ReportCard } from '../../components/ReportCard';
 import { Screen } from '../../components/Screen';
 import { SectionCard } from '../../components/SectionCard';
@@ -13,6 +14,12 @@ import { getDepartmentStats, updateDepartment } from '../../services/department-
 import { listReports } from '../../services/report-service';
 import { listUsers } from '../../services/user-service';
 import { getAverageRating, getAverageResolution, getDepartmentIconName, getStaffDepartmentTheme } from '../../utils/staff';
+import {
+  getPageCount,
+  getPaginatedItems,
+  HISTORY_PAGE_SIZE,
+  matchesReportSearch,
+} from '../../utils/report-history';
 import type { Department } from '../../types/models';
 
 export function DepartmentDetailScreen({ navigation, route }: any) {
@@ -23,6 +30,8 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
   const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
   const [expandedHistoryStaffId, setExpandedHistoryStaffId] = useState<number | null>(null);
   const [isEditingDepartment, setIsEditingDepartment] = useState(false);
+  const [departmentHistorySearch, setDepartmentHistorySearch] = useState('');
+  const [departmentHistoryPage, setDepartmentHistoryPage] = useState(1);
   const [form, setForm] = useState({
     departmentCode: department.departmentCode,
     departmentName: department.departmentName,
@@ -81,6 +90,18 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
   const reports = reportQuery.data && reportQuery.data.length > 0 ? reportQuery.data : dashboardReports.filter(
     (report) => report.departmentId === department.departmentId,
   );
+  const filteredDepartmentReports = useMemo(
+    () =>
+      reports
+        .filter((report) => matchesReportSearch(report, departmentHistorySearch))
+        .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()),
+    [departmentHistorySearch, reports],
+  );
+  const departmentHistoryPageCount = getPageCount(filteredDepartmentReports.length, HISTORY_PAGE_SIZE);
+  const visibleDepartmentReports = useMemo(
+    () => getPaginatedItems(filteredDepartmentReports, departmentHistoryPage, HISTORY_PAGE_SIZE),
+    [departmentHistoryPage, filteredDepartmentReports],
+  );
   const handledByStaffCount = reports.filter((report) => report.assignedStaffId != null).length;
   const staffHandlingSummary = useMemo(
     () =>
@@ -124,6 +145,16 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
   const refetchAll = async () => {
     await Promise.all([statsQuery.refetch(), staffQuery.refetch(), reportQuery.refetch()]);
   };
+
+  useEffect(() => {
+    setDepartmentHistoryPage(1);
+  }, [departmentHistorySearch]);
+
+  useEffect(() => {
+    if (departmentHistoryPage > departmentHistoryPageCount) {
+      setDepartmentHistoryPage(departmentHistoryPageCount);
+    }
+  }, [departmentHistoryPage, departmentHistoryPageCount]);
 
   const handleSaveDepartment = () => {
     if (!form.departmentCode.trim() || !form.departmentName.trim()) {
@@ -466,13 +497,60 @@ export function DepartmentDetailScreen({ navigation, route }: any) {
       </SectionCard>
 
       <SectionCard>
-        <Text style={styles.sectionTitle}>Alert Departemen</Text>
-        {reports.length ? (
-          <View style={styles.list}>
-            {reports.map((report) => (
-              <ReportCard key={report.reportId} report={report} onPress={() => navigation.navigate('ReportDetail', { report })} />
-            ))}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionHeaderText}>
+            <Text style={styles.sectionTitle}>Riwayat Departemen</Text>
+            <Text selectable style={styles.sectionSubtitle}>
+              Cari alert departemen ini dan lihat 10 data per halaman.
+            </Text>
           </View>
+          <Text selectable style={styles.sectionCount}>
+            {filteredDepartmentReports.length} tampil
+          </Text>
+        </View>
+
+        <View style={styles.searchInputRow}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#64748B" />
+          <TextInput
+            value={departmentHistorySearch}
+            onChangeText={setDepartmentHistorySearch}
+            placeholder="Cari deskripsi, lokasi, staff, user..."
+            placeholderTextColor="#94A3B8"
+            returnKeyType="search"
+            style={styles.searchInput}
+          />
+          {departmentHistorySearch ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Hapus pencarian riwayat departemen"
+              onPress={() => setDepartmentHistorySearch('')}
+              style={({ pressed }) => [styles.clearButton, pressed && styles.staffSummaryPressed]}
+            >
+              <MaterialCommunityIcons name="close" size={18} color="#64748B" />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {reports.length ? (
+          filteredDepartmentReports.length ? (
+            <>
+              <View style={styles.list}>
+                {visibleDepartmentReports.map((report) => (
+                  <ReportCard key={report.reportId} report={report} onPress={() => navigation.navigate('ReportDetail', { report })} />
+                ))}
+              </View>
+              <HistoryPagination
+                page={departmentHistoryPage}
+                pageCount={departmentHistoryPageCount}
+                totalItems={filteredDepartmentReports.length}
+                pageSize={HISTORY_PAGE_SIZE}
+                itemLabel="alert"
+                onPageChange={setDepartmentHistoryPage}
+              />
+            </>
+          ) : (
+            <EmptyState title="Tidak ada hasil" description="Tidak ada alert departemen yang cocok dengan pencarian." />
+          )
         ) : (
           <EmptyState title="Belum ada alert" description="Alert departemen akan muncul di sini." />
         )}
@@ -690,6 +768,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  sectionCount: {
+    color: '#64748B',
+    fontSize: 12.5,
+    fontWeight: '800',
+    paddingTop: 2,
+  },
   editIconButton: {
     alignItems: 'center',
     backgroundColor: '#EFF6FF',
@@ -783,6 +867,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '900',
+  },
+  searchInputRow: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#D7E3F0',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 50,
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    color: '#0F172A',
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 0,
+    paddingVertical: 10,
+  },
+  clearButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
   },
   departmentPreview: {
     backgroundColor: '#F8FAFC',
